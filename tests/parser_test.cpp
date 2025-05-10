@@ -58,9 +58,9 @@ static auto test_boolean_literal(const interp::ast::expression& expr, bool value
 
 template <typename T>
 static auto test_literal_expression(const interp::ast::expression& expr, const T& expected) -> void {
-    if constexpr (std::is_same_v<T, interp::i64>) {
+    if constexpr (std::is_same_v<T, interp::i64> || std::is_same_v<T, interp::i32>) {
         test_integer_literal(expr, expected);
-    } else if constexpr (std::convertible_to<T, std::string>) {
+    } else if constexpr (std::is_convertible_v<T, std::string> || std::is_same_v<T, std::string_view>) {
         test_identifier(expr, expected);
     } else if constexpr (std::is_same_v<T, bool>) {
         test_boolean_literal(expr, expected);
@@ -308,32 +308,32 @@ TEST(parser, operator_precedence) {
     };
 
     static constexpr std::array tests{
-        precedence_test{"-a * b",                     "((-a) * b)"                            },
-        precedence_test{"!-a",                        "(!(-a))"                               },
-        precedence_test{"a + b + c",                  "((a + b) + c)"                         },
-        precedence_test{"a + b - c",                  "((a + b) - c)"                         },
-        precedence_test{"a * b * c",                  "((a * b) * c)"                         },
-        precedence_test{"a * b / c",                  "((a * b) / c)"                         },
-        precedence_test{"a + b / c",                  "(a + (b / c))"                         },
-        precedence_test{"a + b * c + d / e - f",      "(((a + (b * c)) + (d / e)) - f)"       },
-        precedence_test{"3 + 4; -5 * 5",              "(3 + 4)((-5) * 5)"                     },
-        precedence_test{"5 > 4 == 3 < 4",             "((5 > 4) == (3 < 4))"                  },
-        precedence_test{"5 < 4 != 3 > 4",             "((5 < 4) != (3 > 4))"                  },
-        precedence_test{"3 + 4 * 5 == 3 * 1 + 4 * 5", "((3 + (4 * 5)) == ((3 * 1) + (4 * 5)))"},
-        precedence_test{"3 + 4 * 5 == 3 * 1 + 4 * 5", "((3 + (4 * 5)) == ((3 * 1) + (4 * 5)))"},
-        precedence_test{"true",                       "true"                                  },
-        precedence_test{"false",                      "false"                                 },
-        precedence_test{"3 > 5 == false",             "((3 > 5) == false)"                    },
-        precedence_test{"3 < 5 == true",              "((3 < 5) == true)"                     },
-        precedence_test{"1 + (2 + 3) + 4",            "((1 + (2 + 3)) + 4)"                   },
-        precedence_test{"(5 + 5) * 2",                "((5 + 5) * 2)"                         },
-        precedence_test{"2 / (5 + 5)",                "(2 / (5 + 5))"                         },
-        precedence_test{"(5 + 5) * 2 * (5 + 5)",      "(((5 + 5) * 2) * (5 + 5))"             },
-        precedence_test{"-(5 + 5)",                   "(-(5 + 5))"                            },
-        precedence_test{"!(true == true)",            "(!(true == true))"                     },
-        // precedence_test{"a + add(b * c) + d",         "((a + add((b * c))) + d)"              },
-        // precedence_test{"add(a, b, 1, 2 * 3, 4 + 5, add(6, 7 * 8))", "add(a, b, 1, (2 * 3), (4 + 5), add(6, (7 * 8)))"},
-        // precedence_test{"add(a + b + c * d / f + g)",                "add((((a + b) + ((c * d) / f)) + g))"           },
+        precedence_test{"-a * b",                                    "((-a) * b)"                                     },
+        precedence_test{"!-a",                                       "(!(-a))"                                        },
+        precedence_test{"a + b + c",                                 "((a + b) + c)"                                  },
+        precedence_test{"a + b - c",                                 "((a + b) - c)"                                  },
+        precedence_test{"a * b * c",                                 "((a * b) * c)"                                  },
+        precedence_test{"a * b / c",                                 "((a * b) / c)"                                  },
+        precedence_test{"a + b / c",                                 "(a + (b / c))"                                  },
+        precedence_test{"a + b * c + d / e - f",                     "(((a + (b * c)) + (d / e)) - f)"                },
+        precedence_test{"3 + 4; -5 * 5",                             "(3 + 4)((-5) * 5)"                              },
+        precedence_test{"5 > 4 == 3 < 4",                            "((5 > 4) == (3 < 4))"                           },
+        precedence_test{"5 < 4 != 3 > 4",                            "((5 < 4) != (3 > 4))"                           },
+        precedence_test{"3 + 4 * 5 == 3 * 1 + 4 * 5",                "((3 + (4 * 5)) == ((3 * 1) + (4 * 5)))"         },
+        precedence_test{"3 + 4 * 5 == 3 * 1 + 4 * 5",                "((3 + (4 * 5)) == ((3 * 1) + (4 * 5)))"         },
+        precedence_test{"true",                                      "true"                                           },
+        precedence_test{"false",                                     "false"                                          },
+        precedence_test{"3 > 5 == false",                            "((3 > 5) == false)"                             },
+        precedence_test{"3 < 5 == true",                             "((3 < 5) == true)"                              },
+        precedence_test{"1 + (2 + 3) + 4",                           "((1 + (2 + 3)) + 4)"                            },
+        precedence_test{"(5 + 5) * 2",                               "((5 + 5) * 2)"                                  },
+        precedence_test{"2 / (5 + 5)",                               "(2 / (5 + 5))"                                  },
+        precedence_test{"(5 + 5) * 2 * (5 + 5)",                     "(((5 + 5) * 2) * (5 + 5))"                      },
+        precedence_test{"-(5 + 5)",                                  "(-(5 + 5))"                                     },
+        precedence_test{"!(true == true)",                           "(!(true == true))"                              },
+        precedence_test{"a + add(b * c) + d",                        "((a + add((b * c))) + d)"                       },
+        precedence_test{"add(a, b, 1, 2 * 3, 4 + 5, add(6, 7 * 8))", "add(a, b, 1, (2 * 3), (4 + 5), add(6, (7 * 8)))"},
+        precedence_test{"add(a + b + c * d / f + g)",                "add((((a + b) + ((c * d) / f)) + g))"           },
     };
 
     for (const auto& test : tests) {
@@ -393,4 +393,82 @@ TEST(parser, if_else_expression) {
     ASSERT_EQ(expr.alternative->statements.size(), 1);
     auto& alternative{dynamic_cast<ast::expression_statement&>(*expr.alternative->statements[0])};
     test_identifier(*alternative.expr, "y");
+}
+
+TEST(parser, fn_literal) {
+    using namespace interp;
+
+    static constexpr std::string_view input{"fn(x, y) { x + y }"};
+
+    lexer::lexer l{input};
+    parser::parser p{l};
+    auto program{p.parse_program()};
+    check_parser_errors(p);
+
+    ASSERT_EQ(program.statements.size(), 1);
+    auto& stmt{dynamic_cast<ast::expression_statement&>(*program.statements[0])};
+
+    auto& fn{dynamic_cast<ast::fn_expression&>(*stmt.expr)};
+    ASSERT_EQ(fn.parameters.size(), 2);
+
+    test_literal_expression(*fn.parameters[0], "x");
+    test_literal_expression(*fn.parameters[1], "y");
+
+    ASSERT_EQ(fn.body->statements.size(), 1);
+    auto& body_stmt{dynamic_cast<ast::expression_statement&>(*fn.body->statements[0])};
+
+    test_infix_expression(*body_stmt.expr, "x", "+", "y");
+}
+
+TEST(parser, fn_parameter) {
+    using namespace interp;
+
+    struct parameter_test {
+        std::string_view input{};
+        std::vector<std::string_view> expected_params{};
+    };
+
+    const std::array tests{
+        parameter_test{"fn() {};",        {}             },
+        parameter_test{"fn(x) {};",       {"x"}          },
+        parameter_test{"fn(x, y, z) {};", {"x", "y", "z"}},
+    };
+
+    for (const auto& test : tests) {
+        lexer::lexer l{test.input};
+        parser::parser p{l};
+        auto program{p.parse_program()};
+        check_parser_errors(p);
+
+        ASSERT_EQ(program.statements.size(), 1);
+        auto& stmt{dynamic_cast<ast::expression_statement&>(*program.statements[0])};
+        auto& fn{dynamic_cast<ast::fn_expression&>(*stmt.expr)};
+
+        ASSERT_EQ(fn.parameters.size(), test.expected_params.size());
+        for (u32 i = 0; i < fn.parameters.size(); i++) {
+            test_literal_expression(*fn.parameters.at(i), test.expected_params.at(i));
+        }
+    }
+}
+
+TEST(parser, call_expression) {
+    using namespace interp;
+
+    static constexpr std::string_view input{"add(1, 2 * 3, 4 + 5);"};
+
+    lexer::lexer l{input};
+    parser::parser p{l};
+    auto program{p.parse_program()};
+    check_parser_errors(p);
+
+    ASSERT_EQ(program.statements.size(), 1);
+    auto& stmt{dynamic_cast<ast::expression_statement&>(*program.statements[0])};
+    auto& call{dynamic_cast<ast::call_expression&>(*stmt.expr)};
+
+    test_identifier(*call.fn, "add");
+
+    ASSERT_EQ(call.arguments.size(), 3);
+    test_literal_expression(*call.arguments[0], 1);
+    test_infix_expression(*call.arguments[1], 2, "*", 3);
+    test_infix_expression(*call.arguments[2], 4, "+", 5);
 }

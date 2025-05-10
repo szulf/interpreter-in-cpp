@@ -143,6 +143,48 @@ auto if_expression::to_string() const -> std::string {
     return ss.str();
 }
 
+auto fn_expression::token_literal() const -> std::string {
+    return token.literal;
+}
+
+auto fn_expression::to_string() const -> std::string {
+    std::stringstream ss{};
+
+    ss << token_literal() << "(";
+
+    for (u32 i{0}; i < parameters.size(); i++) {
+        ss << parameters[i];
+        if (i != parameters.size() - 1) {
+            ss << ", ";
+        }
+    }
+
+    ss << ")" << body->to_string();
+
+    return ss.str();
+}
+
+auto call_expression::token_literal() const -> std::string {
+    return token.literal;
+}
+
+auto call_expression::to_string() const -> std::string {
+    std::stringstream ss{};
+
+    ss << fn->to_string() << "(";
+
+    for (u32 i{0}; i < arguments.size(); i++) {
+        ss << arguments[i]->to_string();
+        if (i != arguments.size() - 1) {
+            ss << ", ";
+        }
+    }
+
+    ss << ")";
+
+    return ss.str();
+}
+
 }
 
 }

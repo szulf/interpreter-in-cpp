@@ -1,5 +1,6 @@
 #include "repl.h"
 #include "lexer.h"
+#include "parser.h"
 
 #include <iostream>
 #include <string_view>
@@ -12,16 +13,24 @@ void start(std::istream& is, std::ostream& os) {
     static constexpr std::string_view prompt{">> "};
 
     while (true) {
-        std::println(os, prompt);
+        std::print(os, prompt);
 
         std::string line;
         std::getline(is, line);
 
         lexer::lexer lex{line};
+        parser::parser p{lex};
 
-        for (auto tok = lex.next_token(); tok.type != token::token_type::End; tok = lex.next_token()) {
-            std::println(os, "{} {}", static_cast<i32>(tok.type), tok.literal);
+        auto program{p.parse_program()};
+        if (!p.errors.empty()) {
+            for (const auto& err : p.errors) {
+                std::println(os, "\t{}", err);
+            }
+            continue;
         }
+
+        std::println(os, "{}", program.to_string());
+        std::println(os);
     }
 }
 

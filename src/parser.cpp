@@ -19,6 +19,7 @@ std::unordered_map<token::token_type, expr_precedence> parser::precedences{
     {token::token_type::Minus,    expr_precedence::Sum        },
     {token::token_type::Slash,    expr_precedence::Product    },
     {token::token_type::Asterisk, expr_precedence::Product    },
+    {token::token_type::Lparen,   expr_precedence::Call       },
 };
 
 auto parser::no_prefix_parse_fn(token::token_type tt) -> void {
@@ -41,7 +42,7 @@ auto parse_integer_literal(parser& p) -> std::unique_ptr<ast::integer_literal> {
     return std::make_unique<ast::integer_literal>(p.curr_token, value);
 }
 
-auto parse_prefix_expr(parser& p) -> std::unique_ptr<ast::prefix_expression> {
+auto parse_prefix_expression(parser& p) -> std::unique_ptr<ast::prefix_expression> {
     auto expr = std::make_unique<ast::prefix_expression>(p.curr_token, p.curr_token.literal);
 
     p.next_token();
@@ -51,7 +52,7 @@ auto parse_prefix_expr(parser& p) -> std::unique_ptr<ast::prefix_expression> {
     return expr;
 }
 
-auto parse_infix_expr(std::unique_ptr<ast::expression> left, parser& p) -> std::unique_ptr<ast::infix_expression> {
+auto parse_infix_expression(std::unique_ptr<ast::expression> left, parser& p) -> std::unique_ptr<ast::infix_expression> {
     auto expr = std::make_unique<ast::infix_expression>(p.curr_token, p.curr_token.literal, std::move(left));
 
     auto precedence{p.curr_precedence()};
@@ -112,24 +113,52 @@ auto parse_if_expression(parser& p) -> std::unique_ptr<ast::if_expression> {
     return expr;
 }
 
+auto parse_fn_expression(parser& p) -> std::unique_ptr<ast::fn_expression> {
+    auto expr{std::make_unique<ast::fn_expression>(p.curr_token)};
+
+    if (!p.expect_peek(token::token_type::Lparen)) {
+        return nullptr;
+    }
+
+    expr->parameters = p.parse_fn_parameters();
+
+    if (!p.expect_peek(token::token_type::Lbrace)) {
+        return nullptr;
+    }
+
+    expr->body = p.parse_block_stmt();
+
+    return expr;
+}
+
+auto parse_call_expression(std::unique_ptr<ast::expression> left, parser& p) -> std::unique_ptr<ast::call_expression> {
+    auto expr{std::make_unique<ast::call_expression>(p.curr_token, std::move(left))};
+
+    expr->arguments = p.parse_call_arguments();
+
+    return expr;
+}
+
 parser::parser(lexer::lexer& l) : lexer{l} {
     prefix_parser_fns[token::token_type::Ident] = parse_identifier;
     prefix_parser_fns[token::token_type::Int] = parse_integer_literal;
-    prefix_parser_fns[token::token_type::Bang] = parse_prefix_expr;
-    prefix_parser_fns[token::token_type::Minus] = parse_prefix_expr;
+    prefix_parser_fns[token::token_type::Bang] = parse_prefix_expression;
+    prefix_parser_fns[token::token_type::Minus] = parse_prefix_expression;
     prefix_parser_fns[token::token_type::True] = parse_boolean_expression;
     prefix_parser_fns[token::token_type::False] = parse_boolean_expression;
     prefix_parser_fns[token::token_type::Lparen] = parse_grouped_expression;
     prefix_parser_fns[token::token_type::If] = parse_if_expression;
+    prefix_parser_fns[token::token_type::Function] = parse_fn_expression;
 
-    infix_parser_fns[token::token_type::Eq] = parse_infix_expr;
-    infix_parser_fns[token::token_type::NotEq] = parse_infix_expr;
-    infix_parser_fns[token::token_type::Lt] = parse_infix_expr;
-    infix_parser_fns[token::token_type::Gt] = parse_infix_expr;
-    infix_parser_fns[token::token_type::Plus] = parse_infix_expr;
-    infix_parser_fns[token::token_type::Minus] = parse_infix_expr;
-    infix_parser_fns[token::token_type::Slash] = parse_infix_expr;
-    infix_parser_fns[token::token_type::Asterisk] = parse_infix_expr;
+    infix_parser_fns[token::token_type::Eq] = parse_infix_expression;
+    infix_parser_fns[token::token_type::NotEq] = parse_infix_expression;
+    infix_parser_fns[token::token_type::Lt] = parse_infix_expression;
+    infix_parser_fns[token::token_type::Gt] = parse_infix_expression;
+    infix_parser_fns[token::token_type::Plus] = parse_infix_expression;
+    infix_parser_fns[token::token_type::Minus] = parse_infix_expression;
+    infix_parser_fns[token::token_type::Slash] = parse_infix_expression;
+    infix_parser_fns[token::token_type::Asterisk] = parse_infix_expression;
+    infix_parser_fns[token::token_type::Lparen] = parse_call_expression;
 
     next_token();
     next_token();
@@ -197,7 +226,7 @@ auto parser::parse_let_stmt() -> std::unique_ptr<ast::let_statement> {
 
     stmt->value = parse_expr(expr_precedence::Lowest);
 
-    while (curr_token.type != token::token_type::Semicolon) {
+    if (curr_token.type == token::token_type::Semicolon) {
         next_token();
     }
 
@@ -211,7 +240,7 @@ auto parser::parse_return_stmt() -> std::unique_ptr<ast::return_statement> {
 
     stmt->value = parse_expr(expr_precedence::Lowest);
 
-    while (curr_token.type != token::token_type::Semicolon) {
+    if (curr_token.type == token::token_type::Semicolon) {
         next_token();
     }
 
@@ -267,6 +296,56 @@ auto parser::parse_block_stmt() -> std::unique_ptr<ast::block_statement> {
     }
 
     return block;
+}
+
+auto parser::parse_fn_parameters() -> std::vector<std::unique_ptr<ast::identifier>> {
+    std::vector<std::unique_ptr<ast::identifier>> parameters{};
+
+    next_token();
+
+    if (curr_token.type == token::token_type::Rparen) {
+        return parameters;
+    }
+
+    parameters.emplace_back(std::make_unique<ast::identifier>(curr_token, curr_token.literal));
+
+    while (peek_token.type == token::token_type::Comma) {
+        next_token();
+        next_token();
+
+        parameters.emplace_back(std::make_unique<ast::identifier>(curr_token, curr_token.literal));
+    }
+
+    if (!expect_peek(token::token_type::Rparen)) {
+        return {};
+    }
+
+    return parameters;
+}
+
+auto parser::parse_call_arguments() -> std::vector<std::unique_ptr<ast::expression>> {
+    std::vector<std::unique_ptr<ast::expression>> parameters{};
+
+    next_token();
+
+    if (curr_token.type == token::token_type::Rparen) {
+        return parameters;
+    }
+
+    parameters.emplace_back(parse_expr(expr_precedence::Lowest));
+
+    while (peek_token.type == token::token_type::Comma) {
+        next_token();
+        next_token();
+
+        parameters.emplace_back(parse_expr(expr_precedence::Lowest));
+    }
+
+    if (!expect_peek(token::token_type::Rparen)) {
+        return {};
+    }
+
+    return parameters;
 }
 
 auto parser::peek_error(token::token_type t) -> void {

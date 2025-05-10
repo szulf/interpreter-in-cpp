@@ -179,6 +179,36 @@ public:
     std::unique_ptr<block_statement> alternative{};
 };
 
+class fn_expression : public expression {
+public:
+    fn_expression() {}
+    fn_expression(const token::token& tok) : token{tok} {}
+
+    auto expression_node() const -> void override {}
+    auto token_literal() const -> std::string override;
+    auto to_string() const -> std::string override;
+
+public:
+    token::token token{};
+    std::vector<std::unique_ptr<identifier>> parameters{};
+    std::unique_ptr<block_statement> body{};
+};
+
+class call_expression : public expression {
+public:
+    call_expression() {}
+    call_expression(const token::token& tok, std::unique_ptr<expression> fn) : token{tok}, fn{std::move(fn)} {}
+
+    auto expression_node() const -> void override {}
+    auto token_literal() const -> std::string override;
+    auto to_string() const -> std::string override;
+
+public:
+    token::token token{};
+    std::unique_ptr<expression> fn{};
+    std::vector<std::unique_ptr<expression>> arguments{};
+};
+
 }
 
 }
