@@ -87,7 +87,7 @@ public:
 
 public:
     token::token token{};
-    std::unique_ptr<expression> expression{};
+    std::unique_ptr<expression> expr{};
 };
 
 class integer_literal : public expression {
@@ -115,6 +115,22 @@ public:
 
 public:
     token::token token{};
+    std::string oper{};
+    std::unique_ptr<expression> right{};
+};
+
+class infix_expression : public expression {
+public:
+    infix_expression() {}
+    infix_expression(const token::token& tok, std::string_view op, std::unique_ptr<ast::expression> l) : token{tok}, left{std::move(l)}, oper{op} {}
+
+    auto expression_node() const -> void override {}
+    auto token_literal() const -> std::string override;
+    auto to_string() const -> std::string override;
+
+public:
+    token::token token{};
+    std::unique_ptr<expression> left{};
     std::string oper{};
     std::unique_ptr<expression> right{};
 };

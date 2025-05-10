@@ -74,8 +74,8 @@ auto expression_statement::token_literal() const -> std::string {
 }
 
 auto expression_statement::to_string() const -> std::string {
-    if (expression != nullptr) {
-        return expression->to_string();
+    if (expr != nullptr) {
+        return expr->to_string();
     }
 
     return {};
@@ -95,6 +95,14 @@ auto prefix_expression::token_literal() const -> std::string {
 
 auto prefix_expression::to_string() const -> std::string {
     return std::format("({}{})", oper, right->to_string());
+}
+
+auto infix_expression::token_literal() const -> std::string {
+    return token.literal;
+}
+
+auto infix_expression::to_string() const -> std::string {
+    return std::format("({} {} {})", left->to_string(), oper, right->to_string());
 }
 
 }

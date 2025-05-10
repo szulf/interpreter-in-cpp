@@ -4,10 +4,23 @@
 
 #include <format>
 #include <memory>
+#include <print>
+#include <stdexcept>
 
 namespace interp {
 
 namespace parser {
+
+std::unordered_map<token::token_type, expr_precedence> parser::precedences{
+    {token::token_type::Eq,       expr_precedence::Equals     },
+    {token::token_type::NotEq,    expr_precedence::Equals     },
+    {token::token_type::Lt,       expr_precedence::LessGreater},
+    {token::token_type::Gt,       expr_precedence::LessGreater},
+    {token::token_type::Plus,     expr_precedence::Sum        },
+    {token::token_type::Minus,    expr_precedence::Sum        },
+    {token::token_type::Slash,    expr_precedence::Product    },
+    {token::token_type::Asterisk, expr_precedence::Product    },
+};
 
 auto parser::no_prefix_parse_fn(token::token_type tt) -> void {
     errors.push_back(std::format("no prefix parse function found for token_type '{}'", token::get_token_type_string(tt)));
@@ -30,13 +43,23 @@ auto parse_integer_literal(parser& p) -> std::unique_ptr<ast::integer_literal> {
 }
 
 auto parse_prefix_expr(parser& p) -> std::unique_ptr<ast::prefix_expression> {
-    ast::prefix_expression expr{p.curr_token, p.curr_token.literal};
+    auto expr = std::make_unique<ast::prefix_expression>(p.curr_token, p.curr_token.literal);
 
     p.next_token();
 
-    expr.right = p.parse_expr(ExprPrecedence::Prefix);
+    expr->right = p.parse_expr(expr_precedence::Prefix);
 
-    return std::make_unique<ast::prefix_expression>(std::move(expr));
+    return expr;
+}
+
+auto parse_infix_expr(std::unique_ptr<ast::expression> left, parser& p) -> std::unique_ptr<ast::infix_expression> {
+    auto expr = std::make_unique<ast::infix_expression>(p.curr_token, p.curr_token.literal, std::move(left));
+
+    auto precedence{p.curr_precedence()};
+    p.next_token();
+    expr->right = p.parse_expr(precedence);
+
+    return expr;
 }
 
 parser::parser(lexer::lexer& l) : lexer{l} {
@@ -44,6 +67,15 @@ parser::parser(lexer::lexer& l) : lexer{l} {
     prefix_parser_fns[token::token_type::Int] = parse_integer_literal;
     prefix_parser_fns[token::token_type::Bang] = parse_prefix_expr;
     prefix_parser_fns[token::token_type::Minus] = parse_prefix_expr;
+
+    infix_parser_fns[token::token_type::Eq] = parse_infix_expr;
+    infix_parser_fns[token::token_type::NotEq] = parse_infix_expr;
+    infix_parser_fns[token::token_type::Lt] = parse_infix_expr;
+    infix_parser_fns[token::token_type::Gt] = parse_infix_expr;
+    infix_parser_fns[token::token_type::Plus] = parse_infix_expr;
+    infix_parser_fns[token::token_type::Minus] = parse_infix_expr;
+    infix_parser_fns[token::token_type::Slash] = parse_infix_expr;
+    infix_parser_fns[token::token_type::Asterisk] = parse_infix_expr;
 
     next_token();
     next_token();
@@ -95,7 +127,7 @@ auto parser::parse_stmt() -> std::unique_ptr<ast::statement> {
 }
 
 auto parser::parse_let_stmt() -> std::unique_ptr<ast::let_statement> {
-    std::unique_ptr<ast::let_statement> stmt{std::make_unique<ast::let_statement>(curr_token)};
+    auto stmt{std::make_unique<ast::let_statement>(curr_token)};
 
     if (!expect_peek(token::token_type::Ident)) {
         return nullptr;
@@ -107,6 +139,10 @@ auto parser::parse_let_stmt() -> std::unique_ptr<ast::let_statement> {
         return nullptr;
     }
 
+    next_token();
+
+    stmt->value = parse_expr(expr_precedence::Lowest);
+
     while (curr_token.type != token::token_type::Semicolon) {
         next_token();
     }
@@ -115,9 +151,11 @@ auto parser::parse_let_stmt() -> std::unique_ptr<ast::let_statement> {
 }
 
 auto parser::parse_return_stmt() -> std::unique_ptr<ast::return_statement> {
-    std::unique_ptr<ast::return_statement> stmt{std::make_unique<ast::return_statement>(curr_token)};
+    auto stmt{std::make_unique<ast::return_statement>(curr_token)};
 
     next_token();
+
+    stmt->value = parse_expr(expr_precedence::Lowest);
 
     while (curr_token.type != token::token_type::Semicolon) {
         next_token();
@@ -129,7 +167,7 @@ auto parser::parse_return_stmt() -> std::unique_ptr<ast::return_statement> {
 auto parser::parse_expr_stmt() -> std::unique_ptr<ast::expression_statement> {
     ast::expression_statement stmt{curr_token};
 
-    stmt.expression = parse_expr(ExprPrecedence::Lowest);
+    stmt.expr = parse_expr(expr_precedence::Lowest);
 
     if (peek_token.type == token::token_type::Semicolon) {
         next_token();
@@ -138,7 +176,7 @@ auto parser::parse_expr_stmt() -> std::unique_ptr<ast::expression_statement> {
     return std::make_unique<ast::expression_statement>(std::move(stmt));
 }
 
-auto parser::parse_expr(ExprPrecedence precedence) -> std::unique_ptr<ast::expression> {
+auto parser::parse_expr(expr_precedence precedence) -> std::unique_ptr<ast::expression> {
     auto prefix{prefix_parser_fns[curr_token.type]};
     if (!static_cast<bool>(prefix)) {
         no_prefix_parse_fn(curr_token.type);
@@ -146,6 +184,16 @@ auto parser::parse_expr(ExprPrecedence precedence) -> std::unique_ptr<ast::expre
     }
 
     auto left_expr{prefix(*this)};
+    while (peek_token.type != token::token_type::Semicolon && precedence < peek_precedence()) {
+        auto infix{infix_parser_fns[peek_token.type]};
+        if (!static_cast<bool>(infix)) {
+            return left_expr;
+        }
+
+        next_token();
+
+        left_expr = infix(std::move(left_expr), *this);
+    }
 
     return left_expr;
 }
@@ -154,6 +202,22 @@ auto parser::peek_error(token::token_type t) -> void {
     errors.emplace_back(
         std::format("expected next token to be {}, got {} instead", token::get_token_type_string(t), token::get_token_type_string(peek_token.type))
     );
+}
+
+auto parser::curr_precedence() -> expr_precedence {
+    try {
+        return precedences.at(curr_token.type);
+    } catch (const std::out_of_range&) {
+        return expr_precedence::Lowest;
+    }
+}
+
+auto parser::peek_precedence() -> expr_precedence {
+    try {
+        return precedences.at(peek_token.type);
+    } catch (const std::out_of_range&) {
+        return expr_precedence::Lowest;
+    }
 }
 
 }

@@ -26,8 +26,8 @@ private:
 
 private:
     std::string input{};
-    i32 pos{};
-    i32 read_pos{};
+    usize pos{};
+    usize read_pos{};
     i8 ch{};
 };
 

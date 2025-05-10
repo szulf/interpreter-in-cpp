@@ -15,9 +15,9 @@ namespace parser {
 class parser;
 
 using prefix_parser_fn = std::function<std::unique_ptr<ast::expression>(parser& p)>;
-using infix_parser_fn = std::function<std::unique_ptr<ast::expression>(const ast::expression&, parser& p)>;
+using infix_parser_fn = std::function<std::unique_ptr<ast::expression>(std::unique_ptr<ast::expression>, parser& p)>;
 
-enum class ExprPrecedence {
+enum class expr_precedence {
     Lowest,
     Equals,
     LessGreater,
@@ -41,13 +41,17 @@ private:
     auto parse_let_stmt() -> std::unique_ptr<ast::let_statement>;
     auto parse_return_stmt() -> std::unique_ptr<ast::return_statement>;
     auto parse_expr_stmt() -> std::unique_ptr<ast::expression_statement>;
-    auto parse_expr(ExprPrecedence precedence) -> std::unique_ptr<ast::expression>;
+    auto parse_expr(expr_precedence precedence) -> std::unique_ptr<ast::expression>;
 
     auto peek_error(token::token_type t) -> void;
 
     auto no_prefix_parse_fn(token::token_type tt) -> void;
 
     friend auto parse_prefix_expr(parser& p) -> std::unique_ptr<ast::prefix_expression>;
+    friend auto parse_infix_expr(std::unique_ptr<ast::expression> left, parser& p) -> std::unique_ptr<ast::infix_expression>;
+
+    auto curr_precedence() -> expr_precedence;
+    auto peek_precedence() -> expr_precedence;
 
 public:
     lexer::lexer& lexer;
@@ -59,6 +63,8 @@ public:
 
     std::unordered_map<token::token_type, prefix_parser_fn> prefix_parser_fns{};
     std::unordered_map<token::token_type, infix_parser_fn> infix_parser_fns{};
+
+    static std::unordered_map<token::token_type, expr_precedence> precedences;
 };
 }
 
