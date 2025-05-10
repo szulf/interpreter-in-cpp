@@ -135,6 +135,50 @@ public:
     std::unique_ptr<expression> right{};
 };
 
+class boolean_expression : public expression {
+public:
+    boolean_expression() {}
+    boolean_expression(const token::token& tok, bool val) : token{tok}, value{val} {}
+
+    auto expression_node() const -> void override {}
+    auto token_literal() const -> std::string override;
+    auto to_string() const -> std::string override;
+
+public:
+    token::token token{};
+    bool value{};
+};
+
+class block_statement : public statement {
+public:
+    block_statement() {}
+    block_statement(const token::token& tok) : token{tok} {}
+
+    auto statement_node() const -> void override {};
+    auto token_literal() const -> std::string override;
+    auto to_string() const -> std::string override;
+
+public:
+    token::token token{};
+    std::vector<std::unique_ptr<statement>> statements{};
+};
+
+class if_expression : public expression {
+public:
+    if_expression() {}
+    if_expression(const token::token& tok) : token{tok} {}
+
+    auto expression_node() const -> void override {}
+    auto token_literal() const -> std::string override;
+    auto to_string() const -> std::string override;
+
+public:
+    token::token token{};
+    std::unique_ptr<expression> condition{};
+    std::unique_ptr<block_statement> consequence{};
+    std::unique_ptr<block_statement> alternative{};
+};
+
 }
 
 }

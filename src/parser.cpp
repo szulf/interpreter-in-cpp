@@ -4,7 +4,6 @@
 
 #include <format>
 #include <memory>
-#include <print>
 #include <stdexcept>
 
 namespace interp {
@@ -62,11 +61,66 @@ auto parse_infix_expr(std::unique_ptr<ast::expression> left, parser& p) -> std::
     return expr;
 }
 
+auto parse_boolean_expression(parser& p) -> std::unique_ptr<ast::boolean_expression> {
+    return std::make_unique<ast::boolean_expression>(p.curr_token, p.curr_token.type == token::token_type::True);
+}
+
+auto parse_grouped_expression(parser& p) -> std::unique_ptr<ast::expression> {
+    p.next_token();
+
+    auto expr{p.parse_expr(expr_precedence::Lowest)};
+
+    if (!p.expect_peek(token::token_type::Rparen)) {
+        return nullptr;
+    }
+
+    return expr;
+}
+
+auto parse_if_expression(parser& p) -> std::unique_ptr<ast::if_expression> {
+    auto expr{std::make_unique<ast::if_expression>(p.curr_token)};
+
+    if (!p.expect_peek(token::token_type::Lparen)) {
+        return nullptr;
+    }
+
+    p.next_token();
+    expr->condition = p.parse_expr(expr_precedence::Lowest);
+
+    if (!p.expect_peek(token::token_type::Rparen)) {
+        return nullptr;
+    }
+
+    if (!p.expect_peek(token::token_type::Lbrace)) {
+        return nullptr;
+    }
+
+    expr->consequence = p.parse_block_stmt();
+
+    if (p.peek_token.type != token::token_type::Else) {
+        return expr;
+    }
+
+    p.next_token();
+
+    if (!p.expect_peek(token::token_type::Lbrace)) {
+        return nullptr;
+    }
+
+    expr->alternative = p.parse_block_stmt();
+
+    return expr;
+}
+
 parser::parser(lexer::lexer& l) : lexer{l} {
     prefix_parser_fns[token::token_type::Ident] = parse_identifier;
     prefix_parser_fns[token::token_type::Int] = parse_integer_literal;
     prefix_parser_fns[token::token_type::Bang] = parse_prefix_expr;
     prefix_parser_fns[token::token_type::Minus] = parse_prefix_expr;
+    prefix_parser_fns[token::token_type::True] = parse_boolean_expression;
+    prefix_parser_fns[token::token_type::False] = parse_boolean_expression;
+    prefix_parser_fns[token::token_type::Lparen] = parse_grouped_expression;
+    prefix_parser_fns[token::token_type::If] = parse_if_expression;
 
     infix_parser_fns[token::token_type::Eq] = parse_infix_expr;
     infix_parser_fns[token::token_type::NotEq] = parse_infix_expr;
@@ -196,6 +250,23 @@ auto parser::parse_expr(expr_precedence precedence) -> std::unique_ptr<ast::expr
     }
 
     return left_expr;
+}
+
+auto parser::parse_block_stmt() -> std::unique_ptr<ast::block_statement> {
+    auto block{std::make_unique<ast::block_statement>(curr_token)};
+
+    next_token();
+
+    while (curr_token.type != token::token_type::Rbrace && curr_token.type != token::token_type::End) {
+        auto stmt{parse_stmt()};
+        if (stmt != nullptr) {
+            block->statements.emplace_back(std::move(stmt));
+        }
+
+        next_token();
+    }
+
+    return block;
 }
 
 auto parser::peek_error(token::token_type t) -> void {

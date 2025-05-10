@@ -44,12 +44,26 @@ static auto test_identifier(const interp::ast::expression& expr, std::string_vie
     }
 }
 
+static auto test_boolean_literal(const interp::ast::expression& expr, bool value) {
+    auto& bool_expr{dynamic_cast<const interp::ast::boolean_expression&>(expr)};
+
+    if (bool_expr.value != value) {
+        throw std::runtime_error{std::format("bool_expr.value should be {} is {}.", value, bool_expr.value)};
+    }
+
+    if (bool_expr.token_literal() != std::format("{}", value)) {
+        throw std::runtime_error{std::format("bool_expr.token_literal() should be {} is {}.", value, bool_expr.token_literal())};
+    }
+}
+
 template <typename T>
 static auto test_literal_expression(const interp::ast::expression& expr, const T& expected) -> void {
-    if constexpr (std::is_same<T, interp::i64>()) {
+    if constexpr (std::is_same_v<T, interp::i64>) {
         test_integer_literal(expr, expected);
-    } else if constexpr (std::is_same<T, std::string>()) {
+    } else if constexpr (std::convertible_to<T, std::string>) {
         test_identifier(expr, expected);
+    } else if constexpr (std::is_same_v<T, bool>) {
+        test_boolean_literal(expr, expected);
     } else {
         throw std::runtime_error{"Type of literal expression not handled."};
     }
@@ -94,9 +108,9 @@ TEST(parser, let_statments) {
     };
 
     static constexpr std::array tests{
-        let_test{"let x = 5;",      "x",      5  },
-        // let_test{"let y = true;",   "y",      true},
-        let_test{"let foobar = y;", "foobar", "y"},
+        let_test{"let x = 5;",      "x",      5   },
+        let_test{"let y = true;",   "y",      true},
+        let_test{"let foobar = y;", "foobar", "y" },
     };
 
     for (const auto& test : tests) {
@@ -130,7 +144,7 @@ TEST(parser, return_statement) {
 
     static constexpr std::array tests{
         return_test{"return 5;",      5       },
-        // return_test{"return true;",   true    },
+        return_test{"return true;",   true    },
         return_test{"return foobar;", "foobar"},
     };
 
@@ -209,8 +223,8 @@ TEST(parser, prefix_expressions) {
         prefix_test{"-15;",     "-", 15      },
         prefix_test{"!foobar;", "!", "foobar"},
         prefix_test{"-foobar;", "-", "foobar"},
-        // prefix_test{"!true;",   "!", true    },
-        // prefix_test{"!false;",  "!", false   },
+        prefix_test{"!true;",   "!", true    },
+        prefix_test{"!false;",  "!", false   },
     };
 
     for (const auto& test : prefix_tests) {
@@ -261,9 +275,9 @@ TEST(parser, infix_expression) {
         infix_test{"foobar < barfoo;",  "foobar", "<",  "barfoo"},
         infix_test{"foobar == barfoo;", "foobar", "==", "barfoo"},
         infix_test{"foobar != barfoo;", "foobar", "!=", "barfoo"},
-        // infix_test{"true == true",      true,     "==", true    },
-        // infix_test{"true != false",     true,     "!=", false   },
-        // infix_test{"false == false",    false,    "==", false   },
+        infix_test{"true == true",      true,     "==", true    },
+        infix_test{"true != false",     true,     "!=", false   },
+        infix_test{"false == false",    false,    "==", false   },
     };
 
     for (const auto& test : tests) {
@@ -307,17 +321,17 @@ TEST(parser, operator_precedence) {
         precedence_test{"5 < 4 != 3 > 4",             "((5 < 4) != (3 > 4))"                  },
         precedence_test{"3 + 4 * 5 == 3 * 1 + 4 * 5", "((3 + (4 * 5)) == ((3 * 1) + (4 * 5)))"},
         precedence_test{"3 + 4 * 5 == 3 * 1 + 4 * 5", "((3 + (4 * 5)) == ((3 * 1) + (4 * 5)))"},
-        // precedence_test{"true",                                      "true"                                           },
-        // precedence_test{"false",                                     "false"                                          },
-        // precedence_test{"3 > 5 == false",                            "((3 > 5) == false)"                             },
-        // precedence_test{"3 < 5 == true",                             "((3 < 5) == true)"                              },
-        // precedence_test{"1 + (2 + 3) + 4",            "((1 + (2 + 3)) + 4)"                   },
-        // precedence_test{"(5 + 5) * 2",                "((5 + 5) * 2)"                         },
-        // precedence_test{"2 / (5 + 5)",                "(2 / (5 + 5))"                         },
-        // precedence_test{"(5 + 5) * 2 * (5 + 5)",      "(((5 + 5) * 2) * (5 + 5))"             },
-        // precedence_test{"-(5 + 5)",                   "(-(5 + 5))"                            },
-        // precedence_test{"!(true == true)",                           "(!(true == true))"                              },
-        // precedence_test{"a + add(b * c) + d",                        "((a + add((b * c))) + d)"                       },
+        precedence_test{"true",                       "true"                                  },
+        precedence_test{"false",                      "false"                                 },
+        precedence_test{"3 > 5 == false",             "((3 > 5) == false)"                    },
+        precedence_test{"3 < 5 == true",              "((3 < 5) == true)"                     },
+        precedence_test{"1 + (2 + 3) + 4",            "((1 + (2 + 3)) + 4)"                   },
+        precedence_test{"(5 + 5) * 2",                "((5 + 5) * 2)"                         },
+        precedence_test{"2 / (5 + 5)",                "(2 / (5 + 5))"                         },
+        precedence_test{"(5 + 5) * 2 * (5 + 5)",      "(((5 + 5) * 2) * (5 + 5))"             },
+        precedence_test{"-(5 + 5)",                   "(-(5 + 5))"                            },
+        precedence_test{"!(true == true)",            "(!(true == true))"                     },
+        // precedence_test{"a + add(b * c) + d",         "((a + add((b * c))) + d)"              },
         // precedence_test{"add(a, b, 1, 2 * 3, 4 + 5, add(6, 7 * 8))", "add(a, b, 1, (2 * 3), (4 + 5), add(6, (7 * 8)))"},
         // precedence_test{"add(a + b + c * d / f + g)",                "add((((a + b) + ((c * d) / f)) + g))"           },
     };
@@ -330,4 +344,53 @@ TEST(parser, operator_precedence) {
 
         ASSERT_EQ(program.to_string(), test.expected);
     }
+}
+
+TEST(parser, if_expression) {
+    using namespace interp;
+
+    static constexpr std::string_view input{"if (x < y) { x }"};
+
+    lexer::lexer l{input};
+    parser::parser p{l};
+    auto program{p.parse_program()};
+    check_parser_errors(p);
+
+    ASSERT_EQ(program.statements.size(), 1);
+    auto& stmt{dynamic_cast<ast::expression_statement&>(*program.statements[0])};
+    auto& expr{dynamic_cast<ast::if_expression&>(*stmt.expr)};
+
+    test_infix_expression(*expr.condition, "x", "<", "y");
+    ASSERT_EQ(expr.consequence->statements.size(), 1);
+
+    auto& consequence{dynamic_cast<ast::expression_statement&>(*expr.consequence->statements[0])};
+    test_identifier(*consequence.expr, "x");
+
+    ASSERT_EQ(expr.alternative, nullptr);
+}
+
+TEST(parser, if_else_expression) {
+    using namespace interp;
+
+    static constexpr std::string_view input{"if (x < y) { x } else { y }"};
+
+    lexer::lexer l{input};
+    parser::parser p{l};
+    auto program{p.parse_program()};
+    check_parser_errors(p);
+
+    ASSERT_EQ(program.statements.size(), 1);
+    auto& stmt{dynamic_cast<ast::expression_statement&>(*program.statements[0])};
+
+    auto& expr{dynamic_cast<ast::if_expression&>(*stmt.expr)};
+
+    test_infix_expression(*expr.condition, "x", "<", "y");
+
+    ASSERT_EQ(expr.consequence->statements.size(), 1);
+    auto& consequence{dynamic_cast<ast::expression_statement&>(*expr.consequence->statements[0])};
+    test_identifier(*consequence.expr, "x");
+
+    ASSERT_EQ(expr.alternative->statements.size(), 1);
+    auto& alternative{dynamic_cast<ast::expression_statement&>(*expr.alternative->statements[0])};
+    test_identifier(*alternative.expr, "y");
 }

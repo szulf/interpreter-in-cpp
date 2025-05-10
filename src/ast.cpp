@@ -105,6 +105,44 @@ auto infix_expression::to_string() const -> std::string {
     return std::format("({} {} {})", left->to_string(), oper, right->to_string());
 }
 
+auto boolean_expression::token_literal() const -> std::string {
+    return token.literal;
+}
+
+auto boolean_expression::to_string() const -> std::string {
+    return token.literal;
+}
+
+auto block_statement::token_literal() const -> std::string {
+    return token.literal;
+}
+
+auto block_statement::to_string() const -> std::string {
+    std::stringstream ss{};
+
+    for (const auto& stmt : statements) {
+        ss << stmt->to_string();
+    }
+
+    return ss.str();
+}
+
+auto if_expression::token_literal() const -> std::string {
+    return token.literal;
+}
+
+auto if_expression::to_string() const -> std::string {
+    std::stringstream ss{};
+
+    ss << "if" << condition->to_string();
+    ss << " " << consequence->to_string();
+    if (alternative != nullptr) {
+        ss << "else " << alternative->to_string();
+    }
+
+    return ss.str();
+}
+
 }
 
 }

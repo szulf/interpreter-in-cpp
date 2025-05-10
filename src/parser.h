@@ -42,6 +42,7 @@ private:
     auto parse_return_stmt() -> std::unique_ptr<ast::return_statement>;
     auto parse_expr_stmt() -> std::unique_ptr<ast::expression_statement>;
     auto parse_expr(expr_precedence precedence) -> std::unique_ptr<ast::expression>;
+    auto parse_block_stmt() -> std::unique_ptr<ast::block_statement>;
 
     auto peek_error(token::token_type t) -> void;
 
@@ -49,6 +50,8 @@ private:
 
     friend auto parse_prefix_expr(parser& p) -> std::unique_ptr<ast::prefix_expression>;
     friend auto parse_infix_expr(std::unique_ptr<ast::expression> left, parser& p) -> std::unique_ptr<ast::infix_expression>;
+    friend auto parse_grouped_expression(parser& p) -> std::unique_ptr<ast::expression>;
+    friend auto parse_if_expression(parser& p) -> std::unique_ptr<ast::if_expression>;
 
     auto curr_precedence() -> expr_precedence;
     auto peek_precedence() -> expr_precedence;
