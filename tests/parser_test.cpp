@@ -1,8 +1,8 @@
 #include <gtest/gtest.h>
 
-#include "../src/ast.h"
-#include "../src/lexer.h"
-#include "../src/parser.h"
+#include "ast.h"
+#include "lexer.h"
+#include "parser.h"
 
 #include <print>
 #include <stdexcept>

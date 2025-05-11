@@ -11,7 +11,7 @@ namespace ast {
 
 class node {
 public:
-    virtual ~node() {};
+    virtual ~node() = default;
 
     virtual auto token_literal() const -> std::string = 0;
     virtual auto to_string() const -> std::string = 0;

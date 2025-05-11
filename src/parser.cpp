@@ -4,6 +4,7 @@
 
 #include <format>
 #include <memory>
+#include <print>
 #include <stdexcept>
 
 namespace interp {
@@ -226,7 +227,7 @@ auto parser::parse_let_stmt() -> std::unique_ptr<ast::let_statement> {
 
     stmt->value = parse_expr(expr_precedence::Lowest);
 
-    if (curr_token.type == token::token_type::Semicolon) {
+    if (peek_token.type == token::token_type::Semicolon) {
         next_token();
     }
 
@@ -240,7 +241,7 @@ auto parser::parse_return_stmt() -> std::unique_ptr<ast::return_statement> {
 
     stmt->value = parse_expr(expr_precedence::Lowest);
 
-    if (curr_token.type == token::token_type::Semicolon) {
+    if (peek_token.type == token::token_type::Semicolon) {
         next_token();
     }
 

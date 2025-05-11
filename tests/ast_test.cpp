@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 
-#include "../src/ast.h"
+#include "ast.h"
 
 TEST(ast, let_string) {
     using namespace interp;
