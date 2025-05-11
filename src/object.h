@@ -41,6 +41,9 @@ public:
 
 class boolean : public object {
 public:
+    boolean() {}
+    boolean(bool val) : value{val} {}
+
     inline auto type() const -> object_type override {
         return object_type::Boolean;
     }
@@ -63,5 +66,6 @@ public:
         return "null";
     }
 };
+
 }
 }

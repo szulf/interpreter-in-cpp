@@ -1,4 +1,5 @@
 #include "repl.h"
+#include "eval.h"
 #include "lexer.h"
 #include "parser.h"
 
@@ -29,7 +30,12 @@ void start(std::istream& is, std::ostream& os) {
             continue;
         }
 
-        std::println(os, "{}", program.to_string());
+        auto evaluated{eval::eval(program)};
+        if (evaluated == nullptr) {
+            continue;
+        }
+
+        std::println(os, "{}", evaluated->inspect());
         std::println(os);
     }
 }
