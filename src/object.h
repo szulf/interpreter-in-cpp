@@ -8,11 +8,13 @@ namespace interp {
 
 namespace object {
 
-enum class object_type {
+enum class object_type : u8 {
     Integer,
     Boolean,
     Null,
 };
+
+auto get_object_type_string(object_type obj) -> std::string_view;
 
 class object {
 public:

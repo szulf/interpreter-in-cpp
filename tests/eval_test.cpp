@@ -45,8 +45,21 @@ TEST(eval, int_expression) {
     };
 
     static constexpr std::array tests{
-        int_test{"5",  5 },
-        int_test{"10", 10},
+        int_test{"5",                               5  },
+        int_test{"10",                              10 },
+        int_test{"-5",                              -5 },
+        int_test{"-10",                             -10},
+        int_test{"5 + 5 + 5 + 5 - 10",              10 },
+        int_test{"2 * 2 * 2 * 2 * 2",               32 },
+        int_test{"-50 + 100 + -50",                 0  },
+        int_test{"5 * 2 + 10",                      20 },
+        int_test{"5 + 2 * 10",                      25 },
+        int_test{"20 + 2 * -10",                    0  },
+        int_test{"50 / 2 * 2 + 10",                 60 },
+        int_test{"2 * (5 + 10)",                    30 },
+        int_test{"3 * 3 * 3 + 10",                  37 },
+        int_test{"3 * (3 * 3) + 10",                37 },
+        int_test{"(5 + 10 * 2 + 15 / 3) * 2 + -10", 50 },
     };
 
     for (const auto& test : tests) {
@@ -64,8 +77,48 @@ TEST(eval, bool_expression) {
     };
 
     static constexpr std::array tests{
-        bool_test{"true",  true },
-        bool_test{"false", false},
+        bool_test{"true",             true },
+        bool_test{"false",            false},
+        bool_test{"1 < 2",            true },
+        bool_test{"1 > 2",            false},
+        bool_test{"1 < 1",            false},
+        bool_test{"1 > 1",            false},
+        bool_test{"1 == 1",           true },
+        bool_test{"1 != 1",           false},
+        bool_test{"1 == 2",           false},
+        bool_test{"1 != 2",           true },
+        bool_test{"true == true",     true },
+        bool_test{"false == false",   true },
+        bool_test{"true == false",    false},
+        bool_test{"true != false",    true },
+        bool_test{"false != true",    true },
+        bool_test{"(1 < 2) == true",  true },
+        bool_test{"(1 < 2) == false", false},
+        bool_test{"(1 > 2) == true",  false},
+        bool_test{"(1 > 2) == false", true },
+    };
+
+    for (const auto& test : tests) {
+        auto evaluated{test_eval(test.input)};
+        test_bool_object(*evaluated, test.expected);
+    }
+}
+
+TEST(eval, bang_operator) {
+    using namespace interp;
+
+    struct bang_test {
+        std::string_view input{};
+        bool expected{};
+    };
+
+    static constexpr std::array tests{
+        bang_test{"!true",   false},
+        bang_test{"!false",  true },
+        bang_test{"!5",      false},
+        bang_test{"!!true",  true },
+        bang_test{"!!false", false},
+        bang_test{"!!5",     true },
     };
 
     for (const auto& test : tests) {
