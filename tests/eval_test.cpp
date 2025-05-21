@@ -36,6 +36,12 @@ static auto test_bool_object(const interp::object::object& obj, bool expected) -
     }
 }
 
+static auto test_null_object(const interp::object::object& obj) -> void {
+    using namespace interp;
+
+    [[maybe_unused]] auto& result{dynamic_cast<const object::null&>(obj)};
+}
+
 TEST(eval, int_expression) {
     using namespace interp;
 
@@ -124,5 +130,39 @@ TEST(eval, bang_operator) {
     for (const auto& test : tests) {
         auto evaluated{test_eval(test.input)};
         test_bool_object(*evaluated, test.expected);
+    }
+}
+
+TEST(eval, if_else) {
+    using namespace interp;
+
+    struct if_test {
+        std::string_view input{};
+        std::variant<i64, std::nullptr_t> expected{};
+    };
+
+    static constexpr std::array tests{
+        if_test{"if (true) { 10 }",              10     },
+        if_test{"if (false) { 10 }",             nullptr},
+        if_test{"if (1) { 10 }",                 10     },
+        if_test{"if (1 < 2) { 10 }",             10     },
+        if_test{"if (1 > 2) { 10 }",             nullptr},
+        if_test{"if (1 > 2) { 10 } else { 20 }", 20     },
+        if_test{"if (1 < 2) { 10 } else { 20 }", 10     },
+    };
+
+    for (const auto& test : tests) {
+        auto evaluated{test_eval(test.input)};
+        std::visit(
+            [&](const auto& val) {
+                using T = std::decay_t<decltype(val)>;
+                if constexpr (std::is_same_v<T, i64>) {
+                    test_int_object(*evaluated, val);
+                } else if constexpr (std::is_same_v<T, std::nullptr_t>) {
+                    test_null_object(*evaluated);
+                }
+            },
+            test.expected
+        );
     }
 }

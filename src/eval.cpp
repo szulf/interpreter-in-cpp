@@ -17,7 +17,8 @@ static auto eval_statements(std::vector<std::unique_ptr<ast::statement>>& stmts)
     return result;
 }
 
-static auto eval_prefix_expression(std::string_view oper, const object::object& obj) -> std::unique_ptr<object::object> {
+static auto eval_prefix_expression(std::string_view oper, const object::object& obj)
+    -> std::unique_ptr<object::object> {
     if (oper == "!") {
         if (auto n{dynamic_cast<const object::boolean*>(&obj)}) {
             return std::make_unique<object::boolean>(!n->value);
@@ -40,7 +41,8 @@ static auto eval_prefix_expression(std::string_view oper, const object::object& 
     return std::make_unique<object::null>();
 }
 
-static auto eval_infix_expression(std::string_view oper, const object::object& left, const object::object& right) -> std::unique_ptr<object::object> {
+static auto eval_infix_expression(std::string_view oper, const object::object& left, const object::object& right)
+    -> std::unique_ptr<object::object> {
     using namespace interp;
 
     if (left.type() == object::object_type::Integer && right.type() == object::object_type::Integer) {
@@ -78,25 +80,60 @@ static auto eval_infix_expression(std::string_view oper, const object::object& l
     return std::make_unique<object::null>();
 }
 
+static auto is_truthy(const object::object& obj) -> bool {
+    if (auto val{dynamic_cast<const object::boolean*>(&obj)}) {
+        if (val->value) {
+            return true;
+        } else {
+            return false;
+        }
+    } else if (dynamic_cast<const object::null*>(&obj)) {
+        return false;
+    }
+
+    return true;
+}
+
 auto eval(ast::node& node) -> std::unique_ptr<object::object> {
     if (auto n{dynamic_cast<ast::program*>(&node)}) {
         return eval_statements(n->statements);
+
+    } else if (auto n{dynamic_cast<ast::block_statement*>(&node)}) {
+        return eval_statements(n->statements);
+
     } else if (auto n{dynamic_cast<ast::expression_statement*>(&node)}) {
         return eval(*n->expr);
+
     } else if (auto n{dynamic_cast<ast::integer_literal*>(&node)}) {
         return std::make_unique<object::integer>(n->value);
+
     } else if (auto n{dynamic_cast<ast::boolean_expression*>(&node)}) {
         return std::make_unique<object::boolean>(n->value);
+
     } else if (auto n{dynamic_cast<ast::prefix_expression*>(&node)}) {
         auto right{eval(*n->right)};
         return eval_prefix_expression(n->oper, *right);
+
     } else if (auto n{dynamic_cast<ast::infix_expression*>(&node)}) {
         auto left{eval(*n->left)};
         auto right{eval(*n->right)};
         return eval_infix_expression(n->oper, *left, *right);
+
+    } else if (auto n{dynamic_cast<ast::if_expression*>(&node)}) {
+        auto condition{eval(*n->condition)};
+
+        if (is_truthy(*condition)) {
+            auto x = eval(*n->consequence);
+            return x;
+        } else if (n->alternative != nullptr) {
+            return eval(*n->alternative);
+        } else {
+            return std::make_unique<object::null>();
+        }
     }
 
     return nullptr;
 }
+
 }
 }
