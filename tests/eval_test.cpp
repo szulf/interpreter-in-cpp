@@ -198,3 +198,37 @@ if (10 > 1) {
         test_int_object(*evaluated, test.expected);
     }
 }
+
+TEST(eval, error) {
+    using namespace interp;
+
+    struct error_test {
+        std::string_view input{};
+        std::string_view expected_message{};
+    };
+
+    static constexpr std::array tests{
+        error_test{"5 + true;",                     "type mismatch: Integer + Boolean"   },
+        error_test{"5 + true; 5;",                  "type mismatch: Integer + Boolean"   },
+        error_test{"-true",                         "unknown operator: -Boolean"         },
+        error_test{"true + false;",                 "unknown operator: Boolean + Boolean"},
+        error_test{"5; true + false; 5",            "unknown operator: Boolean + Boolean"},
+        error_test{"if (10 > 1) { true + false; }", "unknown operator: Boolean + Boolean"},
+        error_test{
+                   R"(
+132if (10 > 1) {
+if (10 > 1) {
+return true + false;
+}
+return 1;
+}
+)",                             "unknown operator: Boolean + Boolean"
+        }
+    };
+
+    for (const auto& test : tests) {
+        auto evaluated{test_eval(test.input)};
+        auto err = dynamic_cast<object::error&>(*evaluated);
+        ASSERT_EQ(err.message, test.expected_message);
+    }
+}

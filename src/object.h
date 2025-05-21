@@ -14,6 +14,7 @@ enum class object_type : u8 {
     Boolean,
     Null,
     ReturnValue,
+    Error,
 };
 
 auto get_object_type_string(object_type obj) -> std::string_view;
@@ -86,6 +87,23 @@ public:
 
 public:
     std::unique_ptr<object> value{};
+};
+
+class error : public object {
+public:
+    error() {}
+    error(std::string_view msg) : message{msg} {}
+
+    inline auto type() const -> object_type override {
+        return object_type::Error;
+    }
+
+    inline auto inspect() const -> std::string override {
+        return "error: " + message;
+    }
+
+public:
+    std::string message{};
 };
 
 }

@@ -14,6 +14,8 @@ auto get_object_type_string(object_type obj) -> std::string_view {
         return "Null";
     case object_type::ReturnValue:
         return "ReturnValue";
+    case object_type::Error:
+        return "Error";
     }
 }
 
