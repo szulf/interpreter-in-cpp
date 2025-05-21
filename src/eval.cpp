@@ -1,17 +1,48 @@
 #include "eval.h"
 #include "ast.h"
 #include "object.h"
-#include <print>
+#include <type_traits>
 
 namespace interp {
 
 namespace eval {
 
-static auto eval_statements(std::vector<std::unique_ptr<ast::statement>>& stmts) -> std::unique_ptr<object::object> {
+static auto eval_program(const ast::program& program) -> std::unique_ptr<object::object> {
     std::unique_ptr<object::object> result{nullptr};
 
-    for (const auto& stmt : stmts) {
+    for (const auto& stmt : program.statements) {
         result = eval(*stmt);
+
+        switch (result->type()) {
+        case object::object_type::ReturnValue: {
+            auto ret{dynamic_cast<object::return_value*>(result.get())};
+            return std::move(ret->value);
+        } break;
+
+
+        default:
+            break;
+        }
+    }
+
+    return result;
+}
+
+static auto eval_block_stmt(const ast::block_statement& block_stmt) -> std::unique_ptr<object::object> {
+    std::unique_ptr<object::object> result{nullptr};
+
+    for (const auto& stmt : block_stmt.statements) {
+        result = eval(*stmt);
+
+        if (result != nullptr) {
+            switch (result->type()) {
+            case object::object_type::ReturnValue:
+                return result;
+
+            default:
+                break;
+            }
+        }
     }
 
     return result;
@@ -96,10 +127,10 @@ static auto is_truthy(const object::object& obj) -> bool {
 
 auto eval(ast::node& node) -> std::unique_ptr<object::object> {
     if (auto n{dynamic_cast<ast::program*>(&node)}) {
-        return eval_statements(n->statements);
+        return eval_program(*n);
 
     } else if (auto n{dynamic_cast<ast::block_statement*>(&node)}) {
-        return eval_statements(n->statements);
+        return eval_block_stmt(*n);
 
     } else if (auto n{dynamic_cast<ast::expression_statement*>(&node)}) {
         return eval(*n->expr);
@@ -123,13 +154,17 @@ auto eval(ast::node& node) -> std::unique_ptr<object::object> {
         auto condition{eval(*n->condition)};
 
         if (is_truthy(*condition)) {
-            auto x = eval(*n->consequence);
-            return x;
+            return eval(*n->consequence);
         } else if (n->alternative != nullptr) {
             return eval(*n->alternative);
         } else {
             return std::make_unique<object::null>();
         }
+
+    } else if (auto n{dynamic_cast<ast::return_statement*>(&node)}) {
+        auto val{eval(*n->value)};
+
+        return std::make_unique<object::return_value>(std::move(val));
     }
 
     return nullptr;

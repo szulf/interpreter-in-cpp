@@ -166,3 +166,35 @@ TEST(eval, if_else) {
         );
     }
 }
+
+TEST(eval, return) {
+    using namespace interp;
+
+    struct return_test {
+        std::string_view input{};
+        i64 expected{};
+    };
+
+    static constexpr std::array tests{
+        return_test{"return 10;",                 10},
+        return_test{"return 10; 9;",              10},
+        return_test{"return 2 * 5; 9;",           10},
+        return_test{"9; return 2 * 5; 9;",        10},
+        return_test{"if (10 > 1) { return 10; }", 10},
+        return_test{
+                    R"(
+if (10 > 1) {
+  if (10 > 1) {
+    return 10;
+  }
+
+  return 1;
+})",                          10
+        },
+    };
+
+    for (const auto& test : tests) {
+        auto evaluated{test_eval(test.input)};
+        test_int_object(*evaluated, test.expected);
+    }
+}

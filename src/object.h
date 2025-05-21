@@ -2,6 +2,7 @@
 
 #include "types.h"
 #include <format>
+#include <memory>
 #include <string>
 
 namespace interp {
@@ -12,6 +13,7 @@ enum class object_type : u8 {
     Integer,
     Boolean,
     Null,
+    ReturnValue,
 };
 
 auto get_object_type_string(object_type obj) -> std::string_view;
@@ -67,6 +69,23 @@ public:
     inline auto inspect() const -> std::string override {
         return "null";
     }
+};
+
+class return_value : public object {
+public:
+    return_value() {}
+    return_value(std::unique_ptr<object> val) : value{std::move(val)} {}
+
+    inline auto type() const -> object_type override {
+        return object_type::ReturnValue;
+    }
+
+    inline auto inspect() const -> std::string override {
+        return value->inspect();
+    }
+
+public:
+    std::unique_ptr<object> value{};
 };
 
 }
