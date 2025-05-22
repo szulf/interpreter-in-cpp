@@ -12,6 +12,7 @@ namespace repl {
 
 void start(std::istream& is, std::ostream& os) {
     static constexpr std::string_view prompt{">> "};
+    auto env = object::environment{};
 
     while (true) {
         std::print(os, prompt);
@@ -30,7 +31,7 @@ void start(std::istream& is, std::ostream& os) {
             continue;
         }
 
-        auto evaluated{eval::eval(program)};
+        auto evaluated{eval::eval(program, env)};
         if (evaluated == nullptr) {
             continue;
         }

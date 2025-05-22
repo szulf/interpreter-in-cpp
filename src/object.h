@@ -4,6 +4,7 @@
 #include <format>
 #include <memory>
 #include <string>
+#include <unordered_map>
 
 namespace interp {
 
@@ -23,6 +24,7 @@ class object {
 public:
     virtual ~object() = default;
 
+    virtual auto clone() const -> std::unique_ptr<object> = 0;
     virtual auto type() const -> object_type = 0;
     virtual auto inspect() const -> std::string = 0;
 };
@@ -31,6 +33,10 @@ class integer : public object {
 public:
     integer() {}
     integer(i64 val) : value{val} {}
+
+    inline auto clone() const -> std::unique_ptr<object> override {
+        return std::make_unique<integer>(*this);
+    }
 
     inline auto type() const -> object_type override {
         return object_type::Integer;
@@ -49,6 +55,10 @@ public:
     boolean() {}
     boolean(bool val) : value{val} {}
 
+    inline auto clone() const -> std::unique_ptr<object> override {
+        return std::make_unique<boolean>(*this);
+    }
+
     inline auto type() const -> object_type override {
         return object_type::Boolean;
     }
@@ -63,6 +73,10 @@ public:
 
 class null : public object {
 public:
+    inline auto clone() const -> std::unique_ptr<object> override {
+        return std::make_unique<null>(*this);
+    }
+
     inline auto type() const -> object_type override {
         return object_type::Null;
     }
@@ -76,6 +90,12 @@ class return_value : public object {
 public:
     return_value() {}
     return_value(std::unique_ptr<object> val) : value{std::move(val)} {}
+
+    return_value(const return_value& val) : value{val.clone()} {}
+
+    inline auto clone() const -> std::unique_ptr<object> override {
+        return std::make_unique<return_value>(*this);
+    }
 
     inline auto type() const -> object_type override {
         return object_type::ReturnValue;
@@ -94,6 +114,10 @@ public:
     error() {}
     error(std::string_view msg) : message{msg} {}
 
+    inline auto clone() const -> std::unique_ptr<object> override {
+        return std::make_unique<error>(*this);
+    }
+
     inline auto type() const -> object_type override {
         return object_type::Error;
     }
@@ -104,6 +128,15 @@ public:
 
 public:
     std::string message{};
+};
+
+class environment {
+public:
+    auto get(const std::string& name) const -> const std::unique_ptr<object>&;
+    auto set(const std::string& name, std::unique_ptr<object> val) -> const object&;
+
+public:
+    std::unordered_map<std::string, std::unique_ptr<object>> store{};
 };
 
 }

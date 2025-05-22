@@ -5,15 +5,17 @@
 #include "object.h"
 #include "parser.h"
 #include "types.h"
+#include <print>
 
 static auto test_eval(std::string_view input) -> std::unique_ptr<interp::object::object> {
     using namespace interp;
 
-    lexer::lexer l{input};
-    parser::parser p{l};
+    auto l{lexer::lexer{input}};
+    auto p{parser::parser{l}};
     auto program{p.parse_program()};
+    auto env{object::environment{}};
 
-    return eval::eval(program);
+    return eval::eval(program, env);
 }
 
 static auto test_int_object(const interp::object::object& obj, interp::i64 expected) -> void {
@@ -223,12 +225,34 @@ return true + false;
 return 1;
 }
 )",                             "unknown operator: Boolean + Boolean"
-        }
+        },
+        error_test{"foobar",                        "identifier not found: foobar"       },
     };
 
     for (const auto& test : tests) {
         auto evaluated{test_eval(test.input)};
         auto err = dynamic_cast<object::error&>(*evaluated);
         ASSERT_EQ(err.message, test.expected_message);
+    }
+}
+
+TEST(eval, let_statement) {
+    using namespace interp;
+
+    struct let_test {
+        std::string_view input{};
+        i64 expected{};
+    };
+
+    static constexpr std::array tests{
+        let_test{"let a = 5; a;",                               5 },
+        let_test{"let a = 5 * 5; a;",                           25},
+        let_test{"let a = 5; let b = a; b;",                    5 },
+        let_test{"let a = 5; let b = a; let c = a + b + 5; c;", 15},
+    };
+
+    for (const auto& test : tests) {
+        auto evaluated{test_eval(test.input)};
+        test_int_object(*evaluated, test.expected);
     }
 }

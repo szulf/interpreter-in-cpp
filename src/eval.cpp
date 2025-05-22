@@ -1,6 +1,7 @@
 #include "eval.h"
 #include "ast.h"
 #include "object.h"
+#include <print>
 #include <type_traits>
 
 namespace interp {
@@ -15,11 +16,14 @@ static auto is_error(object::object* obj) -> bool {
     return false;
 }
 
-static auto eval_program(const ast::program& program) -> std::unique_ptr<object::object> {
+static auto eval_program(const ast::program& program, object::environment& env) -> std::unique_ptr<object::object> {
     std::unique_ptr<object::object> result{nullptr};
 
     for (const auto& stmt : program.statements) {
-        result = eval(*stmt);
+        result = eval(*stmt, env);
+        if (result == nullptr) {
+            continue;
+        }
 
         switch (result->type()) {
         case object::object_type::ReturnValue: {
@@ -33,19 +37,20 @@ static auto eval_program(const ast::program& program) -> std::unique_ptr<object:
             }
         } break;
 
-        default:
-            break;
+        default: {
+        } break;
         }
     }
 
     return result;
 }
 
-static auto eval_block_stmt(const ast::block_statement& block_stmt) -> std::unique_ptr<object::object> {
+static auto eval_block_stmt(const ast::block_statement& block_stmt, object::environment& env)
+    -> std::unique_ptr<object::object> {
     std::unique_ptr<object::object> result{nullptr};
 
     for (const auto& stmt : block_stmt.statements) {
-        result = eval(*stmt);
+        result = eval(*stmt, env);
 
         if (result != nullptr) {
             switch (result->type()) {
@@ -163,15 +168,15 @@ static auto is_truthy(const object::object& obj) -> bool {
     return true;
 }
 
-auto eval(ast::node& node) -> std::unique_ptr<object::object> {
+auto eval(ast::node& node, object::environment& env) -> std::unique_ptr<object::object> {
     if (auto n{dynamic_cast<ast::program*>(&node)}) {
-        return eval_program(*n);
+        return eval_program(*n, env);
 
     } else if (auto n{dynamic_cast<ast::block_statement*>(&node)}) {
-        return eval_block_stmt(*n);
+        return eval_block_stmt(*n, env);
 
     } else if (auto n{dynamic_cast<ast::expression_statement*>(&node)}) {
-        return eval(*n->expr);
+        return eval(*n->expr, env);
 
     } else if (auto n{dynamic_cast<ast::integer_literal*>(&node)}) {
         return std::make_unique<object::integer>(n->value);
@@ -180,7 +185,7 @@ auto eval(ast::node& node) -> std::unique_ptr<object::object> {
         return std::make_unique<object::boolean>(n->value);
 
     } else if (auto n{dynamic_cast<ast::prefix_expression*>(&node)}) {
-        auto right{eval(*n->right)};
+        auto right{eval(*n->right, env)};
         if (is_error(right.get())) {
             return right;
         }
@@ -188,12 +193,12 @@ auto eval(ast::node& node) -> std::unique_ptr<object::object> {
         return eval_prefix_expression(n->oper, *right);
 
     } else if (auto n{dynamic_cast<ast::infix_expression*>(&node)}) {
-        auto left{eval(*n->left)};
+        auto left{eval(*n->left, env)};
         if (is_error(left.get())) {
             return left;
         }
 
-        auto right{eval(*n->right)};
+        auto right{eval(*n->right, env)};
         if (is_error(right.get())) {
             return right;
         }
@@ -201,30 +206,44 @@ auto eval(ast::node& node) -> std::unique_ptr<object::object> {
         return eval_infix_expression(n->oper, *left, *right);
 
     } else if (auto n{dynamic_cast<ast::if_expression*>(&node)}) {
-        auto condition{eval(*n->condition)};
+        auto condition{eval(*n->condition, env)};
         if (is_error(condition.get())) {
             return condition;
         }
 
         if (is_truthy(*condition)) {
-            return eval(*n->consequence);
+            return eval(*n->consequence, env);
         } else if (n->alternative != nullptr) {
-            return eval(*n->alternative);
+            return eval(*n->alternative, env);
         } else {
             return std::make_unique<object::null>();
         }
 
     } else if (auto n{dynamic_cast<ast::return_statement*>(&node)}) {
-        auto val{eval(*n->value)};
+        auto val{eval(*n->value, env)};
         if (is_error(val.get())) {
             return val;
         }
 
         return std::make_unique<object::return_value>(std::move(val));
+    } else if (auto n{dynamic_cast<ast::let_statement*>(&node)}) {
+        auto val{eval(*n->value, env)};
+        if (is_error(val.get())) {
+            return val;
+        }
+        env.set(n->name.value, std::move(val));
+
+    } else if (auto n{dynamic_cast<ast::identifier*>(&node)}) {
+        try {
+            auto& val{env.get(n->value)};
+            return val->clone();
+        } catch (const std::exception& e) {
+            return std::make_unique<object::error>(std::format("identifier not found: {}", n->value));
+        }
     }
 
     return nullptr;
 }
-
 }
+
 }

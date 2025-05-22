@@ -7,7 +7,7 @@ namespace interp {
 
 namespace eval {
 
-auto eval(ast::node& node) -> std::unique_ptr<object::object>;
+auto eval(ast::node& node, object::environment& env) -> std::unique_ptr<object::object>;
 
 }
 

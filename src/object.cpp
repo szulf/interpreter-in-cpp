@@ -19,6 +19,15 @@ auto get_object_type_string(object_type obj) -> std::string_view {
     }
 }
 
+auto environment::get(const std::string& name) const -> const std::unique_ptr<object>& {
+    return store.at(name);
+}
+
+auto environment::set(const std::string& name, std::unique_ptr<object> val) -> const object& {
+    store.insert_or_assign(name, std::move(val));
+    return *store[name];
+}
+
 }
 
 }
