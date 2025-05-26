@@ -36,7 +36,7 @@ void start(std::istream& is, std::ostream& os) {
             continue;
         }
 
-        std::println(os, "{}", evaluated->inspect());
+        std::println(os, "{}", evaluated->to_string());
         std::println(os);
     }
 }

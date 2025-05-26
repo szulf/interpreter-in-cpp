@@ -40,7 +40,8 @@ static auto test_identifier(const interp::ast::expression& expr, std::string_vie
     }
 
     if (ident.token_literal() != value) {
-        throw std::runtime_error{std::format("ident.token_literal() should be {} is {}.", value, ident.token_literal())};
+        throw std::runtime_error{std::format("ident.token_literal() should be {} is {}.", value, ident.token_literal())
+        };
     }
 }
 
@@ -52,7 +53,9 @@ static auto test_boolean_literal(const interp::ast::expression& expr, bool value
     }
 
     if (bool_expr.token_literal() != std::format("{}", value)) {
-        throw std::runtime_error{std::format("bool_expr.token_literal() should be {} is {}.", value, bool_expr.token_literal())};
+        throw std::runtime_error{
+            std::format("bool_expr.token_literal() should be {} is {}.", value, bool_expr.token_literal())
+        };
     }
 }
 
@@ -70,7 +73,9 @@ static auto test_literal_expression(const interp::ast::expression& expr, const T
 }
 
 template <typename T1, typename T2>
-static auto test_infix_expression(const interp::ast::expression& expr, const T1& left, std::string_view oper, const T2& right) -> void {
+static auto
+test_infix_expression(const interp::ast::expression& expr, const T1& left, std::string_view oper, const T2& right)
+    -> void {
     auto& in_expr{dynamic_cast<const interp::ast::infix_expression&>(expr)};
 
     test_literal_expression(*in_expr.left, left);
@@ -94,7 +99,9 @@ static auto test_let_statement(const interp::ast::statement& stmt, std::string_v
     }
 
     if (let_stmt.name.token_literal() != name) {
-        throw std::runtime_error{std::format("let_stmt.name.token_literal() should be {} is {}.", name, let_stmt.name.token_literal())};
+        throw std::runtime_error{
+            std::format("let_stmt.name.token_literal() should be {} is {}.", name, let_stmt.name.token_literal())
+        };
     }
 }
 
@@ -361,9 +368,10 @@ TEST(parser, if_expression) {
     auto& expr{dynamic_cast<ast::if_expression&>(*stmt.expr)};
 
     test_infix_expression(*expr.condition, "x", "<", "y");
-    ASSERT_EQ(expr.consequence->statements.size(), 1);
+    auto consq = dynamic_cast<ast::block_statement&>(*expr.consequence);
+    ASSERT_EQ(consq.statements.size(), 1);
 
-    auto& consequence{dynamic_cast<ast::expression_statement&>(*expr.consequence->statements[0])};
+    auto& consequence{dynamic_cast<ast::expression_statement&>(*consq.statements[0])};
     test_identifier(*consequence.expr, "x");
 
     ASSERT_EQ(expr.alternative, nullptr);
@@ -386,12 +394,14 @@ TEST(parser, if_else_expression) {
 
     test_infix_expression(*expr.condition, "x", "<", "y");
 
-    ASSERT_EQ(expr.consequence->statements.size(), 1);
-    auto& consequence{dynamic_cast<ast::expression_statement&>(*expr.consequence->statements[0])};
+    auto consq = dynamic_cast<ast::block_statement&>(*expr.consequence);
+    ASSERT_EQ(consq.statements.size(), 1);
+    auto& consequence{dynamic_cast<ast::expression_statement&>(*consq.statements[0])};
     test_identifier(*consequence.expr, "x");
 
-    ASSERT_EQ(expr.alternative->statements.size(), 1);
-    auto& alternative{dynamic_cast<ast::expression_statement&>(*expr.alternative->statements[0])};
+    auto alter = dynamic_cast<ast::block_statement&>(*expr.alternative);
+    ASSERT_EQ(alter.statements.size(), 1);
+    auto& alternative{dynamic_cast<ast::expression_statement&>(*alter.statements[0])};
     test_identifier(*alternative.expr, "y");
 }
 
@@ -414,8 +424,9 @@ TEST(parser, fn_literal) {
     test_literal_expression(*fn.parameters[0], "x");
     test_literal_expression(*fn.parameters[1], "y");
 
-    ASSERT_EQ(fn.body->statements.size(), 1);
-    auto& body_stmt{dynamic_cast<ast::expression_statement&>(*fn.body->statements[0])};
+    auto body = dynamic_cast<ast::block_statement&>(*fn.body);
+    ASSERT_EQ(body.statements.size(), 1);
+    auto& body_stmt{dynamic_cast<ast::expression_statement&>(*body.statements[0])};
 
     test_infix_expression(*body_stmt.expr, "x", "+", "y");
 }

@@ -1,7 +1,10 @@
 #include "eval.h"
 #include "ast.h"
 #include "object.h"
+#include <cassert>
+#include <memory>
 #include <print>
+#include <ranges>
 #include <type_traits>
 
 namespace interp {
@@ -168,6 +171,41 @@ static auto is_truthy(const object::object& obj) -> bool {
     return true;
 }
 
+static auto eval_expressions(const std::vector<std::unique_ptr<ast::expression>>& exprs, object::environment& env)
+    -> std::vector<std::unique_ptr<object::object>> {
+    std::vector<std::unique_ptr<object::object>> ret{};
+
+    for (const auto& expr : exprs) {
+        auto evaluated{eval(*expr, env)};
+        if (is_error(evaluated.get())) {
+            ret.clear();
+            ret.emplace_back(std::move(evaluated));
+            return ret;
+        }
+
+        ret.emplace_back(std::move(evaluated));
+    }
+
+    return ret;
+}
+
+static auto apply_function(const object::object& function, std::vector<std::unique_ptr<object::object>> args)
+    -> std::unique_ptr<object::object> {
+    auto& fn{dynamic_cast<const object::function&>(function)};
+
+    auto env{object::environment(fn.env)};
+    for (const auto& [param, arg] : std::ranges::zip_view(fn.parameters, args)) {
+        env.set(dynamic_cast<const ast::identifier&>(*param).value, std::move(arg));
+    }
+
+    auto evaluated{eval(*fn.body, env)};
+    if (auto val{dynamic_cast<object::return_value*>(evaluated.get())}) {
+        return std::move(val->value);
+    }
+
+    return evaluated;
+}
+
 auto eval(ast::node& node, object::environment& env) -> std::unique_ptr<object::object> {
     if (auto n{dynamic_cast<ast::program*>(&node)}) {
         return eval_program(*n, env);
@@ -189,7 +227,6 @@ auto eval(ast::node& node, object::environment& env) -> std::unique_ptr<object::
         if (is_error(right.get())) {
             return right;
         }
-
         return eval_prefix_expression(n->oper, *right);
 
     } else if (auto n{dynamic_cast<ast::infix_expression*>(&node)}) {
@@ -226,6 +263,7 @@ auto eval(ast::node& node, object::environment& env) -> std::unique_ptr<object::
         }
 
         return std::make_unique<object::return_value>(std::move(val));
+
     } else if (auto n{dynamic_cast<ast::let_statement*>(&node)}) {
         auto val{eval(*n->value, env)};
         if (is_error(val.get())) {
@@ -234,12 +272,28 @@ auto eval(ast::node& node, object::environment& env) -> std::unique_ptr<object::
         env.set(n->name.value, std::move(val));
 
     } else if (auto n{dynamic_cast<ast::identifier*>(&node)}) {
-        try {
-            auto& val{env.get(n->value)};
-            return val->clone();
-        } catch (const std::exception& e) {
-            return std::make_unique<object::error>(std::format("identifier not found: {}", n->value));
+        auto* val{env.get(n->value)};
+        if (val) {
+            return (*val)->clone();
         }
+
+        return std::make_unique<object::error>(std::format("identifier not found: {}", n->value));
+
+    } else if (auto n{dynamic_cast<ast::fn_expression*>(&node)}) {
+        return std::make_unique<object::function>(std::move(n->parameters), std::move(n->body), env);
+
+    } else if (auto n{dynamic_cast<ast::call_expression*>(&node)}) {
+        auto fn = eval(*n->fn, env);
+        if (is_error(fn.get())) {
+            return fn;
+        }
+
+        auto args = eval_expressions(n->arguments, env);
+        if (args.size() == 1 && is_error(args[0].get())) {
+            return std::move(args[0]);
+        }
+
+        return apply_function(*fn, std::move(args));
     }
 
     return nullptr;
