@@ -3,7 +3,6 @@
 #include "object.h"
 #include <cassert>
 #include <memory>
-#include <print>
 #include <ranges>
 #include <type_traits>
 
@@ -189,18 +188,31 @@ static auto eval_expressions(const std::vector<std::unique_ptr<ast::expression>>
     return ret;
 }
 
-static auto apply_function(const object::object& function, std::vector<std::unique_ptr<object::object>> args)
+static auto apply_function(object::object& function, std::vector<std::unique_ptr<object::object>> args)
     -> std::unique_ptr<object::object> {
-    auto& fn{dynamic_cast<const object::function&>(function)};
+    auto& fn{dynamic_cast<object::function&>(function)};
 
-    auto env{object::environment(fn.env)};
+    fn.env_inner = std::make_optional<object::environment>(*fn.env_outer);
     for (const auto& [param, arg] : std::ranges::zip_view(fn.parameters, args)) {
-        env.set(dynamic_cast<const ast::identifier&>(*param).value, std::move(arg));
+        fn.env_inner->set(dynamic_cast<const ast::identifier&>(*param).value, std::move(arg));
     }
 
-    auto evaluated{eval(*fn.body, env)};
+    auto evaluated{eval(*fn.body, *fn.env_inner)};
     if (auto val{dynamic_cast<object::return_value*>(evaluated.get())}) {
         return std::move(val->value);
+    } else if (auto val{dynamic_cast<object::function*>(evaluated.get())}) {
+        // FIXME: something
+        val->env_inner->outer = val->env_outer->clone();
+        std::visit(
+            [&](const auto& v) {
+                if constexpr (std::is_same_v<decltype(v), object::environment*>) {
+                    val->env_outer = v->env_inner->outer;
+                } else if constexpr (std::is_same_v<decltype(v), std::unique_ptr<object::environment*>>) {
+                    val->env_outer = v->env_inner->outer.get();
+                }
+            },
+            val->env_inner->outer
+        );
     }
 
     return evaluated;
@@ -298,6 +310,7 @@ auto eval(ast::node& node, object::environment& env) -> std::unique_ptr<object::
 
     return nullptr;
 }
+
 }
 
 }

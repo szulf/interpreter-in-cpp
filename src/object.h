@@ -6,6 +6,7 @@
 #include <memory>
 #include <string>
 #include <unordered_map>
+#include <variant>
 
 namespace interp {
 
@@ -136,20 +137,27 @@ public:
 class environment {
 public:
     environment() {}
-    environment(environment* outer) : outer{outer} {}
+    environment(environment& outer) : outer{&outer} {}
+
+    environment(const environment& other);
+    auto operator=(const environment& other) -> environment&;
+
+    inline auto clone() const -> std::unique_ptr<environment> {
+        return std::make_unique<environment>(*this);
+    }
 
     auto get(const std::string& name) const -> const std::unique_ptr<object>*;
     auto set(const std::string& name, std::unique_ptr<object> val) -> const object&;
 
 public:
-    environment* outer{};
+    std::variant<environment*, std::unique_ptr<environment>> outer{};
     std::unordered_map<std::string, std::unique_ptr<object>> store{};
 };
 
 class function : public object {
 public:
     function(std::vector<std::unique_ptr<ast::expression>> params, std::unique_ptr<ast::statement> b, environment& e)
-        : parameters{std::move(params)}, body{std::move(b)}, env{&e} {}
+        : parameters{std::move(params)}, body{std::move(b)}, env_outer{&e} {}
     function(const function& other);
 
     inline auto clone() const -> std::unique_ptr<object> override {
@@ -165,7 +173,8 @@ public:
 public:
     std::vector<std::unique_ptr<ast::expression>> parameters{};
     std::unique_ptr<ast::statement> body{};
-    environment* env;
+    environment* env_outer{};
+    std::optional<environment> env_inner{std::nullopt};
 };
 
 }
