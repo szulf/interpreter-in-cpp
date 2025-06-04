@@ -3,9 +3,9 @@
 #include "object.h"
 #include <cassert>
 #include <memory>
-#include <print>
 #include <ranges>
 #include <type_traits>
+#include <vector>
 
 namespace interp {
 
@@ -189,17 +189,26 @@ static auto eval_expressions(const std::vector<std::unique_ptr<ast::expression>>
     return ret;
 }
 
-static auto apply_function(const object::object& function, std::vector<std::unique_ptr<object::object>> args)
+static auto apply_function(object::object& function, std::vector<std::unique_ptr<object::object>> args)
     -> std::unique_ptr<object::object> {
-    auto& fn{dynamic_cast<const object::function&>(function)};
+    auto& fn{dynamic_cast<object::function&>(function)};
 
-    auto env{object::environment(fn.env)};
+    auto env{std::make_unique<object::environment>(&fn.env_outer)};
     for (const auto& [param, arg] : std::ranges::zip_view(fn.parameters, args)) {
-        env.set(dynamic_cast<const ast::identifier&>(*param).value, std::move(arg));
+        env->set(dynamic_cast<const ast::identifier&>(*param).value, std::move(arg));
     }
 
-    auto evaluated{eval(*fn.body, env)};
+    auto evaluated{eval(*fn.body, *env)};
+
+    if (dynamic_cast<object::function*>(evaluated.get())) {
+        fn.env_outer.envs_inner.push_back(std::move(env));
+    }
+
     if (auto val{dynamic_cast<object::return_value*>(evaluated.get())}) {
+        if (dynamic_cast<object::function*>(val->value.get())) {
+            fn.env_outer.envs_inner.push_back(std::move(env));
+        }
+
         return std::move(val->value);
     }
 
@@ -269,11 +278,12 @@ auto eval(ast::node& node, object::environment& env) -> std::unique_ptr<object::
         if (is_error(val.get())) {
             return val;
         }
+
         env.set(n->name.value, std::move(val));
 
     } else if (auto n{dynamic_cast<ast::identifier*>(&node)}) {
         auto* val{env.get(n->value)};
-        if (val) {
+        if (val && *val) {
             return (*val)->clone();
         }
 
@@ -298,6 +308,7 @@ auto eval(ast::node& node, object::environment& env) -> std::unique_ptr<object::
 
     return nullptr;
 }
+
 }
 
 }

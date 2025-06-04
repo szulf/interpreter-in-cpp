@@ -1,7 +1,5 @@
 #include "object.h"
-#include <print>
 #include <sstream>
-#include <stdexcept>
 
 namespace interp {
 
@@ -22,22 +20,28 @@ auto get_object_type_string(object_type obj) -> std::string_view {
     case object_type::Function:
         return "Function";
     }
+
+    return "wut";
 }
 
 auto environment::get(const std::string& name) const -> const std::unique_ptr<object>* {
-    try {
+    if (store.contains(name)) {
         return &store.at(name);
-    } catch (const std::out_of_range&) {
-        if (outer) {
-            return outer->get(name);
-        }
-        return nullptr;
     }
+
+    if (outer) {
+        return outer->get(name);
+    }
+
+    return nullptr;
 }
 
-auto environment::set(const std::string& name, std::unique_ptr<object> val) -> const object& {
-    store.insert_or_assign(name, std::move(val));
-    return *store[name];
+auto environment::set(const std::string& name, std::unique_ptr<object> val) -> void {
+    store[name] = std::move(val);
+}
+
+auto environment::operator==(const environment& other) const -> bool {
+    return store == other.store && outer == other.outer && envs_inner == other.envs_inner;
 }
 
 auto function::to_string() const -> std::string {
@@ -55,7 +59,7 @@ auto function::to_string() const -> std::string {
     return ss.str();
 }
 
-function::function(const function& other) : body{other.body->clone()}, env{other.env} {
+function::function(const function& other) : body{other.body->clone()}, env_outer{other.env_outer} {
     for (const auto& param : other.parameters) {
         parameters.emplace_back(param->clone());
     }

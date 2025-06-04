@@ -5,7 +5,8 @@
 #include "object.h"
 #include "parser.h"
 #include "types.h"
-#include <print>
+#include <memory>
+#include <string_view>
 
 static auto test_eval(std::string_view input) -> std::unique_ptr<interp::object::object> {
     using namespace interp;
@@ -15,7 +16,9 @@ static auto test_eval(std::string_view input) -> std::unique_ptr<interp::object:
     auto program{p.parse_program()};
     auto env{object::environment{}};
 
-    return eval::eval(program, env);
+    auto x = eval::eval(program, env);
+
+    return x;
 }
 
 static auto test_int_object(const interp::object::object& obj, interp::i64 expected) -> void {
@@ -195,20 +198,20 @@ TEST(eval, return) {
         },
         return_test{
                     R"(
-let f = fn(x) {
-  return x;
-  x + 10;
-};
-f(10);)",                          10
+        let f = fn(x) {
+          return x;
+          x + 10;
+        };
+        f(10);)",                          10
         },
         return_test{
                     R"(
-let f = fn(x) {
-   let result = x + 10;
-   return result;
-   return 10;
-};
-f(10);)",                          20
+        let f = fn(x) {
+           let result = x + 10;
+           return result;
+           return 10;
+        };
+        f(10);)",                          20
         }
     };
 
@@ -227,22 +230,22 @@ TEST(eval, error) {
     };
 
     static constexpr std::array tests{
-        //         error_test{"5 + true;",                     "type mismatch: Integer + Boolean"   },
-        //         error_test{"5 + true; 5;",                  "type mismatch: Integer + Boolean"   },
-        //         error_test{"-true",                         "unknown operator: -Boolean"         },
-        //         error_test{"true + false;",                 "unknown operator: Boolean + Boolean"},
-        //         error_test{"5; true + false; 5",            "unknown operator: Boolean + Boolean"},
-        //         error_test{"if (10 > 1) { true + false; }", "unknown operator: Boolean + Boolean"},
-        //         error_test{
-        //                    R"(
-        // if (10 > 1) {
-        //     if (10 > 1) {
-        //         return true + false;
-        //     }
-        //     return 1;
-        // })", "unknown operator: Boolean + Boolean"
-        //         },
-        error_test{"foobar", "identifier not found: foobar"},
+        error_test{"5 + true;",                     "type mismatch: Integer + Boolean"   },
+        error_test{"5 + true; 5;",                  "type mismatch: Integer + Boolean"   },
+        error_test{"-true",                         "unknown operator: -Boolean"         },
+        error_test{"true + false;",                 "unknown operator: Boolean + Boolean"},
+        error_test{"5; true + false; 5",            "unknown operator: Boolean + Boolean"},
+        error_test{"if (10 > 1) { true + false; }", "unknown operator: Boolean + Boolean"},
+        error_test{
+                   R"(
+        if (10 > 1) {
+            if (10 > 1) {
+                return true + false;
+            }
+            return 1;
+        })",                             "unknown operator: Boolean + Boolean"
+        },
+        error_test{"foobar",                        "identifier not found: foobar"       },
     };
 
     for (const auto& test : tests) {
@@ -308,4 +311,18 @@ TEST(eval, function_application) {
         auto evaluated{test_eval(test.input)};
         test_int_object(*evaluated, test.expected);
     }
+}
+
+TEST(eval, closures) {
+    using namespace interp;
+
+    static constexpr std::string_view input{R"(
+let newAdder = fn(x) {
+fn(y) { x + y };
+};
+let addTwo = newAdder(2);
+addTwo(2);)"};
+
+    auto evaluated{test_eval(input)};
+    test_int_object(*evaluated, 4);
 }

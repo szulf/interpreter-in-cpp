@@ -138,18 +138,22 @@ public:
     environment() {}
     environment(environment* outer) : outer{outer} {}
 
+    auto set(const std::string& name, std::unique_ptr<object> val) -> void;
     auto get(const std::string& name) const -> const std::unique_ptr<object>*;
-    auto set(const std::string& name, std::unique_ptr<object> val) -> const object&;
+
+    auto operator==(const environment& other) const -> bool;
 
 public:
-    environment* outer{};
     std::unordered_map<std::string, std::unique_ptr<object>> store{};
+
+    environment* outer{};
+    std::vector<std::unique_ptr<environment>> envs_inner{};
 };
 
 class function : public object {
 public:
     function(std::vector<std::unique_ptr<ast::expression>> params, std::unique_ptr<ast::statement> b, environment& e)
-        : parameters{std::move(params)}, body{std::move(b)}, env{&e} {}
+        : parameters{std::move(params)}, body{std::move(b)}, env_outer{e} {}
     function(const function& other);
 
     inline auto clone() const -> std::unique_ptr<object> override {
@@ -165,7 +169,7 @@ public:
 public:
     std::vector<std::unique_ptr<ast::expression>> parameters{};
     std::unique_ptr<ast::statement> body{};
-    environment* env;
+    environment& env_outer;
 };
 
 }
