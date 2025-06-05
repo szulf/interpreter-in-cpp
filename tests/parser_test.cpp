@@ -483,3 +483,19 @@ TEST(parser, call_expression) {
     test_infix_expression(*call.arguments[1], 2, "*", 3);
     test_infix_expression(*call.arguments[2], 4, "+", 5);
 }
+
+TEST(parser, string_literals) {
+    using namespace interp;
+
+    static constexpr std::string_view input{"\"hello world\";"};
+
+    lexer::lexer l{input};
+    parser::parser p{l};
+    auto program{p.parse_program()};
+    check_parser_errors(p);
+
+    ASSERT_EQ(program.statements.size(), 1);
+    auto& stmt{dynamic_cast<ast::expression_statement&>(*program.statements[0])};
+    auto& str{dynamic_cast<ast::string_literal&>(*stmt.expr)};
+    ASSERT_EQ(str.value, "hello world");
+}

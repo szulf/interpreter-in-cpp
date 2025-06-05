@@ -235,6 +235,21 @@ public:
     std::vector<std::unique_ptr<expression>> arguments{};
 };
 
+class string_literal : public expression {
+public:
+    string_literal() {}
+    string_literal(const token::token& tok, const std::string& val) : token{tok}, value{val} {}
+
+    auto expression_node() const -> void override {}
+    auto clone() const -> std::unique_ptr<expression> override;
+    auto token_literal() const -> std::string override;
+    auto to_string() const -> std::string override;
+
+public:
+    token::token token{};
+    std::string value{};
+};
+
 }
 
 }
