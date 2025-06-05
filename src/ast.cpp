@@ -1,4 +1,5 @@
 #include "ast.h"
+#include <memory>
 #include <sstream>
 
 namespace interp {
@@ -23,12 +24,20 @@ auto program::to_string() const -> std::string {
     return ss.str();
 }
 
+auto identifier::clone() const -> std::unique_ptr<expression> {
+    return std::make_unique<identifier>(*this);
+}
+
 auto identifier::token_literal() const -> std::string {
     return token.literal;
 }
 
 auto identifier::to_string() const -> std::string {
     return value;
+}
+
+auto let_statement::clone() const -> std::unique_ptr<statement> {
+    return std::make_unique<let_statement>(*this);
 }
 
 auto let_statement::token_literal() const -> std::string {
@@ -51,6 +60,10 @@ auto let_statement::to_string() const -> std::string {
     return ss.str();
 }
 
+auto return_statement::clone() const -> std::unique_ptr<statement> {
+    return std::make_unique<return_statement>(*this);
+}
+
 auto return_statement::token_literal() const -> std::string {
     return token.literal;
 }
@@ -69,6 +82,10 @@ auto return_statement::to_string() const -> std::string {
     return ss.str();
 }
 
+auto expression_statement::clone() const -> std::unique_ptr<statement> {
+    return std::make_unique<expression_statement>(*this);
+}
+
 auto expression_statement::token_literal() const -> std::string {
     return token.literal;
 }
@@ -81,12 +98,20 @@ auto expression_statement::to_string() const -> std::string {
     return {};
 }
 
+auto integer_literal::clone() const -> std::unique_ptr<expression> {
+    return std::make_unique<integer_literal>(*this);
+}
+
 auto integer_literal::token_literal() const -> std::string {
     return token.literal;
 }
 
 auto integer_literal::to_string() const -> std::string {
     return token.literal;
+}
+
+auto prefix_expression::clone() const -> std::unique_ptr<expression> {
+    return std::make_unique<prefix_expression>(*this);
 }
 
 auto prefix_expression::token_literal() const -> std::string {
@@ -97,6 +122,10 @@ auto prefix_expression::to_string() const -> std::string {
     return std::format("({}{})", oper, right->to_string());
 }
 
+auto infix_expression::clone() const -> std::unique_ptr<expression> {
+    return std::make_unique<infix_expression>(*this);
+}
+
 auto infix_expression::token_literal() const -> std::string {
     return token.literal;
 }
@@ -105,12 +134,26 @@ auto infix_expression::to_string() const -> std::string {
     return std::format("({} {} {})", left->to_string(), oper, right->to_string());
 }
 
+auto boolean_expression::clone() const -> std::unique_ptr<expression> {
+    return std::make_unique<boolean_expression>(*this);
+}
+
 auto boolean_expression::token_literal() const -> std::string {
     return token.literal;
 }
 
 auto boolean_expression::to_string() const -> std::string {
     return token.literal;
+}
+
+block_statement::block_statement(const block_statement& other) : token{other.token} {
+    for (const auto& stmt : other.statements) {
+        statements.emplace_back(stmt->clone());
+    }
+}
+
+auto block_statement::clone() const -> std::unique_ptr<statement> {
+    return std::make_unique<block_statement>(*this);
 }
 
 auto block_statement::token_literal() const -> std::string {
@@ -127,6 +170,17 @@ auto block_statement::to_string() const -> std::string {
     return ss.str();
 }
 
+if_expression::if_expression(const if_expression& other)
+    : token{other.token}, condition{other.condition->clone()}, consequence{other.consequence->clone()} {
+    if (other.alternative) {
+        alternative = other.alternative->clone();
+    }
+}
+
+auto if_expression::clone() const -> std::unique_ptr<expression> {
+    return std::make_unique<if_expression>(*this);
+}
+
 auto if_expression::token_literal() const -> std::string {
     return token.literal;
 }
@@ -141,6 +195,16 @@ auto if_expression::to_string() const -> std::string {
     }
 
     return ss.str();
+}
+
+fn_expression::fn_expression(const fn_expression& other) : token{other.token}, body{other.body->clone()} {
+    for (const auto& param : other.parameters) {
+        parameters.push_back(param->clone());
+    }
+}
+
+auto fn_expression::clone() const -> std::unique_ptr<expression> {
+    return std::make_unique<fn_expression>(*this);
 }
 
 auto fn_expression::token_literal() const -> std::string {
@@ -162,6 +226,16 @@ auto fn_expression::to_string() const -> std::string {
     ss << ")" << body->to_string();
 
     return ss.str();
+}
+
+call_expression::call_expression(const call_expression& other) : token{other.token}, fn{other.fn->clone()} {
+    for (const auto& arg : other.arguments) {
+        arguments.emplace_back(arg->clone());
+    }
+}
+
+auto call_expression::clone() const -> std::unique_ptr<expression> {
+    return std::make_unique<call_expression>(*this);
 }
 
 auto call_expression::token_literal() const -> std::string {

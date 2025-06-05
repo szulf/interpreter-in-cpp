@@ -11,7 +11,7 @@ namespace ast {
 
 class node {
 public:
-    virtual ~node() {};
+    virtual ~node() = default;
 
     virtual auto token_literal() const -> std::string = 0;
     virtual auto to_string() const -> std::string = 0;
@@ -19,11 +19,13 @@ public:
 
 class statement : public node {
 public:
+    virtual auto clone() const -> std::unique_ptr<statement> = 0;
     virtual auto statement_node() const -> void = 0;
 };
 
 class expression : public node {
 public:
+    virtual auto clone() const -> std::unique_ptr<expression> = 0;
     virtual auto expression_node() const -> void = 0;
 };
 
@@ -42,6 +44,7 @@ public:
     identifier(const token::token& tok, std::string_view val) : token{tok}, value{val} {}
 
     auto expression_node() const -> void override {}
+    auto clone() const -> std::unique_ptr<expression> override;
     auto token_literal() const -> std::string override;
     auto to_string() const -> std::string override;
 
@@ -53,8 +56,10 @@ public:
 class let_statement : public statement {
 public:
     let_statement(const token::token& tok) : token{tok} {}
+    let_statement(const let_statement& other) : token{other.token}, name{other.name}, value{other.value->clone()} {}
 
     auto statement_node() const -> void override {};
+    auto clone() const -> std::unique_ptr<statement> override;
     auto token_literal() const -> std::string override;
     auto to_string() const -> std::string override;
 
@@ -67,8 +72,10 @@ public:
 class return_statement : public statement {
 public:
     return_statement(const token::token& tok) : token{tok} {}
+    return_statement(const return_statement& other) : token{other.token}, value{other.value->clone()} {}
 
     auto statement_node() const -> void override {}
+    auto clone() const -> std::unique_ptr<statement> override;
     auto token_literal() const -> std::string override;
     auto to_string() const -> std::string override;
 
@@ -80,8 +87,10 @@ public:
 class expression_statement : public statement {
 public:
     expression_statement(const token::token& tok) : token{tok} {}
+    expression_statement(const expression_statement& other) : token{other.token}, expr{other.expr->clone()} {}
 
     auto statement_node() const -> void override {}
+    auto clone() const -> std::unique_ptr<statement> override;
     auto token_literal() const -> std::string override;
     auto to_string() const -> std::string override;
 
@@ -96,6 +105,7 @@ public:
     integer_literal(const token::token& tok, i64 val) : token{tok}, value{val} {}
 
     auto expression_node() const -> void override {}
+    auto clone() const -> std::unique_ptr<expression> override;
     auto token_literal() const -> std::string override;
     auto to_string() const -> std::string override;
 
@@ -108,8 +118,11 @@ class prefix_expression : public expression {
 public:
     prefix_expression() {}
     prefix_expression(const token::token& tok, std::string_view op) : token{tok}, oper{op} {}
+    prefix_expression(const prefix_expression& other)
+        : token{other.token}, oper{other.oper}, right{other.right->clone()} {}
 
     auto expression_node() const -> void override {}
+    auto clone() const -> std::unique_ptr<expression> override;
     auto token_literal() const -> std::string override;
     auto to_string() const -> std::string override;
 
@@ -122,9 +135,13 @@ public:
 class infix_expression : public expression {
 public:
     infix_expression() {}
-    infix_expression(const token::token& tok, std::string_view op, std::unique_ptr<ast::expression> l) : token{tok}, left{std::move(l)}, oper{op} {}
+    infix_expression(const token::token& tok, std::string_view op, std::unique_ptr<ast::expression> l)
+        : token{tok}, left{std::move(l)}, oper{op} {}
+    infix_expression(const infix_expression& other)
+        : token{other.token}, left{other.left->clone()}, oper{other.oper}, right{other.right->clone()} {}
 
     auto expression_node() const -> void override {}
+    auto clone() const -> std::unique_ptr<expression> override;
     auto token_literal() const -> std::string override;
     auto to_string() const -> std::string override;
 
@@ -141,6 +158,7 @@ public:
     boolean_expression(const token::token& tok, bool val) : token{tok}, value{val} {}
 
     auto expression_node() const -> void override {}
+    auto clone() const -> std::unique_ptr<expression> override;
     auto token_literal() const -> std::string override;
     auto to_string() const -> std::string override;
 
@@ -153,8 +171,10 @@ class block_statement : public statement {
 public:
     block_statement() {}
     block_statement(const token::token& tok) : token{tok} {}
+    block_statement(const block_statement& tok);
 
     auto statement_node() const -> void override {};
+    auto clone() const -> std::unique_ptr<statement> override;
     auto token_literal() const -> std::string override;
     auto to_string() const -> std::string override;
 
@@ -167,39 +187,45 @@ class if_expression : public expression {
 public:
     if_expression() {}
     if_expression(const token::token& tok) : token{tok} {}
+    if_expression(const if_expression& other);
 
     auto expression_node() const -> void override {}
+    auto clone() const -> std::unique_ptr<expression> override;
     auto token_literal() const -> std::string override;
     auto to_string() const -> std::string override;
 
 public:
     token::token token{};
     std::unique_ptr<expression> condition{};
-    std::unique_ptr<block_statement> consequence{};
-    std::unique_ptr<block_statement> alternative{};
+    std::unique_ptr<statement> consequence{};
+    std::unique_ptr<statement> alternative{};
 };
 
 class fn_expression : public expression {
 public:
     fn_expression() {}
     fn_expression(const token::token& tok) : token{tok} {}
+    fn_expression(const fn_expression& other);
 
     auto expression_node() const -> void override {}
+    auto clone() const -> std::unique_ptr<expression> override;
     auto token_literal() const -> std::string override;
     auto to_string() const -> std::string override;
 
 public:
     token::token token{};
-    std::vector<std::unique_ptr<identifier>> parameters{};
-    std::unique_ptr<block_statement> body{};
+    std::vector<std::unique_ptr<expression>> parameters{};
+    std::unique_ptr<statement> body{};
 };
 
 class call_expression : public expression {
 public:
     call_expression() {}
     call_expression(const token::token& tok, std::unique_ptr<expression> fn) : token{tok}, fn{std::move(fn)} {}
+    call_expression(const call_expression& other);
 
     auto expression_node() const -> void override {}
+    auto clone() const -> std::unique_ptr<expression> override;
     auto token_literal() const -> std::string override;
     auto to_string() const -> std::string override;
 

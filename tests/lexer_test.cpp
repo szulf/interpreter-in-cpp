@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 
-#include "../src/lexer.h"
-#include "../src/token.h"
+#include "lexer.h"
+#include "token.h"
 
 TEST(lexer, next_token_1) {
     using namespace interp;

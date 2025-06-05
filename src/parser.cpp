@@ -23,7 +23,8 @@ std::unordered_map<token::token_type, expr_precedence> parser::precedences{
 };
 
 auto parser::no_prefix_parse_fn(token::token_type tt) -> void {
-    errors.push_back(std::format("no prefix parse function found for token_type '{}'", token::get_token_type_string(tt)));
+    errors.push_back(std::format("no prefix parse function found for token_type '{}'", token::get_token_type_string(tt))
+    );
 }
 
 auto parse_identifier(parser& p) -> std::unique_ptr<ast::identifier> {
@@ -52,7 +53,8 @@ auto parse_prefix_expression(parser& p) -> std::unique_ptr<ast::prefix_expressio
     return expr;
 }
 
-auto parse_infix_expression(std::unique_ptr<ast::expression> left, parser& p) -> std::unique_ptr<ast::infix_expression> {
+auto parse_infix_expression(std::unique_ptr<ast::expression> left, parser& p)
+    -> std::unique_ptr<ast::infix_expression> {
     auto expr = std::make_unique<ast::infix_expression>(p.curr_token, p.curr_token.literal, std::move(left));
 
     auto precedence{p.curr_precedence()};
@@ -226,7 +228,7 @@ auto parser::parse_let_stmt() -> std::unique_ptr<ast::let_statement> {
 
     stmt->value = parse_expr(expr_precedence::Lowest);
 
-    if (curr_token.type == token::token_type::Semicolon) {
+    if (peek_token.type == token::token_type::Semicolon) {
         next_token();
     }
 
@@ -240,7 +242,7 @@ auto parser::parse_return_stmt() -> std::unique_ptr<ast::return_statement> {
 
     stmt->value = parse_expr(expr_precedence::Lowest);
 
-    if (curr_token.type == token::token_type::Semicolon) {
+    if (peek_token.type == token::token_type::Semicolon) {
         next_token();
     }
 
@@ -298,8 +300,8 @@ auto parser::parse_block_stmt() -> std::unique_ptr<ast::block_statement> {
     return block;
 }
 
-auto parser::parse_fn_parameters() -> std::vector<std::unique_ptr<ast::identifier>> {
-    std::vector<std::unique_ptr<ast::identifier>> parameters{};
+auto parser::parse_fn_parameters() -> std::vector<std::unique_ptr<ast::expression>> {
+    std::vector<std::unique_ptr<ast::expression>> parameters{};
 
     next_token();
 
@@ -349,9 +351,11 @@ auto parser::parse_call_arguments() -> std::vector<std::unique_ptr<ast::expressi
 }
 
 auto parser::peek_error(token::token_type t) -> void {
-    errors.emplace_back(
-        std::format("expected next token to be {}, got {} instead", token::get_token_type_string(t), token::get_token_type_string(peek_token.type))
-    );
+    errors.emplace_back(std::format(
+        "expected next token to be {}, got {} instead",
+        token::get_token_type_string(t),
+        token::get_token_type_string(peek_token.type)
+    ));
 }
 
 auto parser::curr_precedence() -> expr_precedence {

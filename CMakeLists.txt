@@ -20,6 +20,8 @@ SET(SRC_FILES
     ${SRC_DIR}/repl.cpp ${SRC_DIR}/repl.h
     ${SRC_DIR}/ast.cpp ${SRC_DIR}/ast.h
     ${SRC_DIR}/parser.cpp ${SRC_DIR}/parser.h
+    ${SRC_DIR}/object.cpp ${SRC_DIR}/object.h
+    ${SRC_DIR}/eval.cpp ${SRC_DIR}/eval.h
 )
 
 add_executable(interp

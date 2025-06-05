@@ -43,7 +43,7 @@ private:
     auto parse_expr_stmt() -> std::unique_ptr<ast::expression_statement>;
     auto parse_expr(expr_precedence precedence) -> std::unique_ptr<ast::expression>;
     auto parse_block_stmt() -> std::unique_ptr<ast::block_statement>;
-    auto parse_fn_parameters() -> std::vector<std::unique_ptr<ast::identifier>>;
+    auto parse_fn_parameters() -> std::vector<std::unique_ptr<ast::expression>>;
     auto parse_call_arguments() -> std::vector<std::unique_ptr<ast::expression>>;
 
     auto peek_error(token::token_type t) -> void;
@@ -51,11 +51,13 @@ private:
     auto no_prefix_parse_fn(token::token_type tt) -> void;
 
     friend auto parse_prefix_expression(parser& p) -> std::unique_ptr<ast::prefix_expression>;
-    friend auto parse_infix_expression(std::unique_ptr<ast::expression> left, parser& p) -> std::unique_ptr<ast::infix_expression>;
+    friend auto parse_infix_expression(std::unique_ptr<ast::expression> left, parser& p)
+        -> std::unique_ptr<ast::infix_expression>;
     friend auto parse_grouped_expression(parser& p) -> std::unique_ptr<ast::expression>;
     friend auto parse_if_expression(parser& p) -> std::unique_ptr<ast::if_expression>;
     friend auto parse_fn_expression(parser& p) -> std::unique_ptr<ast::fn_expression>;
-    friend auto parse_call_expression(std::unique_ptr<ast::expression> left, parser& p) -> std::unique_ptr<ast::call_expression>;
+    friend auto parse_call_expression(std::unique_ptr<ast::expression> left, parser& p)
+        -> std::unique_ptr<ast::call_expression>;
 
     auto curr_precedence() -> expr_precedence;
     auto peek_precedence() -> expr_precedence;

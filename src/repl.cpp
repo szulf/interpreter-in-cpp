@@ -1,5 +1,7 @@
 #include "repl.h"
+#include "eval.h"
 #include "lexer.h"
+#include "object.h"
 #include "parser.h"
 
 #include <iostream>
@@ -11,6 +13,7 @@ namespace repl {
 
 void start(std::istream& is, std::ostream& os) {
     static constexpr std::string_view prompt{">> "};
+    auto env{object::environment{}};
 
     while (true) {
         std::print(os, prompt);
@@ -29,7 +32,12 @@ void start(std::istream& is, std::ostream& os) {
             continue;
         }
 
-        std::println(os, "{}", program.to_string());
+        auto evaluated{eval::eval(program, env)};
+        if (evaluated == nullptr) {
+            continue;
+        }
+
+        std::println(os, "{}", evaluated->to_string());
         std::println(os);
     }
 }

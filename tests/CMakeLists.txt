@@ -27,8 +27,11 @@ add_executable(interp_tests
     lexer_test.cpp
     parser_test.cpp
     ast_test.cpp
+    eval_test.cpp
     ${SRC_FILES}
 )
+
+target_include_directories(interp_tests PUBLIC ${CMAKE_SOURCE_DIR}/src)
 
 target_link_libraries(interp_tests
   GTest::gtest_main
