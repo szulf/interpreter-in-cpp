@@ -13,16 +13,17 @@ class lexer {
 public:
     lexer(std::string_view input);
 
-    token::token next_token();
+    auto next_token() -> token::token;
 
 private:
-    void read_char();
+    auto read_char() -> void;
     i8 peek_char();
 
-    std::string read_ident();
-    std::string read_number();
+    auto read_ident() -> std::string;
+    auto read_number() -> std::string;
+    auto read_string() -> std::string;
 
-    void skip_whitespace();
+    auto skip_whitespace() -> void;
 
 private:
     std::string input{};
