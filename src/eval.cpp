@@ -132,13 +132,27 @@ static auto eval_infix_expression(std::string_view oper, const object::object& l
             ));
         }
     } else if (left.type() == object::object_type::Boolean && right.type() == object::object_type::Boolean) {
-        auto& left_val{dynamic_cast<const object::boolean&>(left).value};
-        auto& right_val{dynamic_cast<const object::boolean&>(right).value};
+        auto left_val{dynamic_cast<const object::boolean&>(left).value};
+        auto right_val{dynamic_cast<const object::boolean&>(right).value};
 
         if (oper == "!=") {
             return std::make_unique<object::boolean>(left_val != right_val);
         } else if (oper == "==") {
             return std::make_unique<object::boolean>(left_val == right_val);
+        } else {
+            return std::make_unique<object::error>(std::format(
+                "unknown operator: {} {} {}",
+                object::get_object_type_string(left.type()),
+                oper,
+                object::get_object_type_string(right.type())
+            ));
+        }
+    } else if (left.type() == object::object_type::String && right.type() == object::object_type::String) {
+        auto& left_val{dynamic_cast<const object::string&>(left).value};
+        auto& right_val{dynamic_cast<const object::string&>(right).value};
+
+        if (oper == "+") {
+            return std::make_unique<object::string>(left_val + right_val);
         } else {
             return std::make_unique<object::error>(std::format(
                 "unknown operator: {} {} {}",
