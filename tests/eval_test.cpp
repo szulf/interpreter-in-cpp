@@ -246,6 +246,7 @@ TEST(eval, error) {
         })",                             "unknown operator: Boolean + Boolean"
         },
         error_test{"foobar",                        "identifier not found: foobar"       },
+        error_test{"\"Hello\" - \"World\"",         "unknown operator: String - String"  },
     };
 
     for (const auto& test : tests) {
@@ -335,4 +336,14 @@ TEST(eval, strings) {
     auto evaluated{test_eval(input)};
     auto& str{dynamic_cast<object::string&>(*evaluated)};
     ASSERT_EQ(str.value, "Hello World!");
+}
+
+TEST(eval, string_concat) {
+    using namespace interp;
+
+    static constexpr std::string_view input{"\"Hello\" + \" \" + \"World\""};
+
+    auto evaluated{test_eval(input)};
+    auto& str{dynamic_cast<object::string&>(*evaluated)};
+    ASSERT_EQ(str.value, "Hello World");
 }
