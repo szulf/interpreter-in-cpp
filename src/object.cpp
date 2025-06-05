@@ -1,5 +1,6 @@
 #include "object.h"
 #include <sstream>
+#include <utility>
 
 namespace interp {
 
@@ -19,9 +20,11 @@ auto get_object_type_string(object_type obj) -> std::string_view {
         return "Error";
     case object_type::Function:
         return "Function";
+    case object_type::String:
+        return "String";
     }
 
-    return "wut";
+    std::unreachable();
 }
 
 auto environment::get(const std::string& name) const -> const std::unique_ptr<object>* {

@@ -18,6 +18,7 @@ enum class object_type : u8 {
     ReturnValue,
     Error,
     Function,
+    String,
 };
 
 auto get_object_type_string(object_type obj) -> std::string_view;
@@ -170,6 +171,27 @@ public:
     std::vector<std::unique_ptr<ast::expression>> parameters{};
     std::unique_ptr<ast::statement> body{};
     environment& env_outer;
+};
+
+class string : public object {
+public:
+    string() {}
+    string(const std::string& val) : value{val} {}
+
+    inline auto clone() const -> std::unique_ptr<object> override {
+        return std::make_unique<string>(*this);
+    }
+
+    inline auto type() const -> object_type override {
+        return object_type::String;
+    }
+
+    inline auto to_string() const -> std::string override {
+        return std::format("\"{}\"", value);
+    }
+
+public:
+    std::string value{};
 };
 
 }

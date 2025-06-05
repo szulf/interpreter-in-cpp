@@ -304,6 +304,8 @@ auto eval(ast::node& node, object::environment& env) -> std::unique_ptr<object::
         }
 
         return apply_function(*fn, std::move(args));
+    } else if (auto n{dynamic_cast<ast::string_literal*>(&node)}) {
+        return std::make_unique<object::string>(n->value);
     }
 
     return nullptr;

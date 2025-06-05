@@ -326,3 +326,13 @@ addTwo(2);)"};
     auto evaluated{test_eval(input)};
     test_int_object(*evaluated, 4);
 }
+
+TEST(eval, strings) {
+    using namespace interp;
+
+    static constexpr std::string_view input{"\"Hello World!\""};
+
+    auto evaluated{test_eval(input)};
+    auto& str{dynamic_cast<object::string&>(*evaluated)};
+    ASSERT_EQ(str.value, "Hello World!");
+}
