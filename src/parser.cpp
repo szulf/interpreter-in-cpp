@@ -141,6 +141,10 @@ auto parse_call_expression(std::unique_ptr<ast::expression> left, parser& p) -> 
     return expr;
 }
 
+auto parse_string_literal(parser& p) -> std::unique_ptr<ast::expression> {
+    return std::make_unique<ast::string_literal>(p.curr_token, p.curr_token.literal);
+}
+
 parser::parser(lexer::lexer& l) : lexer{l} {
     prefix_parser_fns[token::token_type::Ident] = parse_identifier;
     prefix_parser_fns[token::token_type::Int] = parse_integer_literal;
@@ -151,6 +155,7 @@ parser::parser(lexer::lexer& l) : lexer{l} {
     prefix_parser_fns[token::token_type::Lparen] = parse_grouped_expression;
     prefix_parser_fns[token::token_type::If] = parse_if_expression;
     prefix_parser_fns[token::token_type::Function] = parse_fn_expression;
+    prefix_parser_fns[token::token_type::String] = parse_string_literal;
 
     infix_parser_fns[token::token_type::Eq] = parse_infix_expression;
     infix_parser_fns[token::token_type::NotEq] = parse_infix_expression;

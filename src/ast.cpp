@@ -259,6 +259,18 @@ auto call_expression::to_string() const -> std::string {
     return ss.str();
 }
 
+auto string_literal::clone() const -> std::unique_ptr<expression> {
+    return std::make_unique<string_literal>(*this);
+}
+
+auto string_literal::token_literal() const -> std::string {
+    return token.literal;
+}
+
+auto string_literal::to_string() const -> std::string {
+    return token.literal;
+}
+
 }
 
 }
