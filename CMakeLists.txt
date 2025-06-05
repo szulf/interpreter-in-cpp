@@ -31,4 +31,4 @@ add_executable(interp
 
 add_subdirectory(tests)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g3 -O0 -Wall -Werror -Wconversion -Wuninitialized -Wunused -fsanitize=address -fsanitize=leak")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g3 -O0 -Wall -Werror -Wextra -Wconversion -Wuninitialized -Wunused -fsanitize=address -fsanitize=leak")

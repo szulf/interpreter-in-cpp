@@ -1,5 +1,6 @@
 #include "lexer.h"
 #include "helpers.h"
+#include "token.h"
 
 namespace interp {
 
@@ -9,13 +10,13 @@ lexer::lexer(std::string_view input) : input{input} {
     read_char();
 }
 
-token::token lexer::next_token() {
+auto lexer::next_token() -> token::token {
     token::token tok{};
 
     skip_whitespace();
 
     switch (ch) {
-    case '=':
+    case '=': {
         if (peek_char() == '=') {
             auto c = ch;
             read_char();
@@ -23,17 +24,17 @@ token::token lexer::next_token() {
         } else {
             tok = token::token{token::token_type::Assign, ch};
         }
-        break;
+    } break;
 
-    case '+':
+    case '+': {
         tok = token::token{token::token_type::Plus, ch};
-        break;
+    } break;
 
-    case '-':
+    case '-': {
         tok = token::token{token::token_type::Minus, ch};
-        break;
+    } break;
 
-    case '!':
+    case '!': {
         if (peek_char() == '=') {
             auto c = ch;
             read_char();
@@ -41,53 +42,58 @@ token::token lexer::next_token() {
         } else {
             tok = token::token{token::token_type::Bang, ch};
         }
-        break;
+    } break;
 
-    case '/':
+    case '/': {
         tok = token::token{token::token_type::Slash, ch};
-        break;
+    } break;
 
-    case '*':
+    case '*': {
         tok = token::token{token::token_type::Asterisk, ch};
-        break;
+    } break;
 
-    case '<':
+    case '<': {
         tok = token::token{token::token_type::Lt, ch};
-        break;
+    } break;
 
-    case '>':
+    case '>': {
         tok = token::token{token::token_type::Gt, ch};
-        break;
+    } break;
 
-    case ';':
+    case ';': {
         tok = token::token{token::token_type::Semicolon, ch};
-        break;
+    } break;
 
-    case '(':
+    case '(': {
         tok = token::token{token::token_type::Lparen, ch};
-        break;
+    } break;
 
-    case ')':
+    case ')': {
         tok = token::token{token::token_type::Rparen, ch};
-        break;
+    } break;
 
-    case ',':
+    case ',': {
         tok = token::token{token::token_type::Comma, ch};
-        break;
+    } break;
 
-    case '{':
+    case '{': {
         tok = token::token{token::token_type::Lbrace, ch};
-        break;
+    } break;
 
-    case '}':
+    case '}': {
         tok = token::token{token::token_type::Rbrace, ch};
-        break;
+    } break;
 
-    case 0:
+    case '"': {
+        tok.type = token::token_type::String;
+        tok.literal = read_string();
+    } break;
+
+    case 0: {
         tok = token::token{token::token_type::End, ""};
-        break;
+    } break;
 
-    default:
+    default: {
         if (helpers::is_letter(ch)) {
             auto ident = read_ident();
             tok = token::token{token::lookup_ident(ident), ident};
@@ -100,8 +106,7 @@ token::token lexer::next_token() {
         } else {
             tok = token::token{token::token_type::Illegal, ch};
         }
-
-        break;
+    } break;
     }
 
     read_char();
@@ -109,46 +114,56 @@ token::token lexer::next_token() {
     return tok;
 }
 
-void lexer::read_char() {
+auto lexer::read_char() -> void {
     if (read_pos >= input.size()) {
         ch = 0;
     } else {
-        ch = input[static_cast<u32>(read_pos)];
+        ch = input[read_pos];
     }
 
     pos = read_pos;
     read_pos++;
 }
 
-i8 lexer::peek_char() {
+auto lexer::peek_char() -> i8 {
     if (read_pos >= input.size()) {
         return 0;
     } else {
-        return input[static_cast<u32>(read_pos)];
+        return input[read_pos];
     }
 }
 
-std::string lexer::read_ident() {
+auto lexer::read_ident() -> std::string {
     auto p = pos;
 
     while (helpers::is_letter(ch)) {
         read_char();
     }
 
-    return input.substr(static_cast<u32>(p), static_cast<u32>(pos - p));
+    return input.substr(p, pos - p);
 }
 
-std::string lexer::read_number() {
+auto lexer::read_number() -> std::string {
     auto p = pos;
 
     while (std::isdigit(ch)) {
         read_char();
     }
 
-    return input.substr(static_cast<u32>(p), static_cast<u32>(pos - p));
+    return input.substr(p, pos - p);
 }
 
-void lexer::skip_whitespace() {
+auto lexer::read_string() -> std::string {
+    auto p = pos + 1;
+
+    do {
+        read_char();
+    } while (ch != '"' && ch != 0);
+
+    return input.substr(p, pos - p);
+}
+
+auto lexer::skip_whitespace() -> void {
     while (std::isspace(ch)) {
         read_char();
     }
