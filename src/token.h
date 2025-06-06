@@ -36,6 +36,8 @@ enum class token_type : u8 {
     Rparen,
     Lbrace,
     Rbrace,
+    Lbracket,
+    Rbracket,
 
     Function,
     Let,

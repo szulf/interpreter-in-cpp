@@ -81,6 +81,10 @@ auto get_token_type_string(token_type t) -> std::string_view {
         return "Return";
     case token_type::String:
         return "String";
+    case token_type::Lbracket:
+        return "Lbracket";
+    case token_type::Rbracket:
+        return "Rbracket";
     }
 
     std::unreachable();
