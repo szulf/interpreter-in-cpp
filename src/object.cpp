@@ -22,6 +22,8 @@ auto get_object_type_string(object_type obj) -> std::string_view {
         return "Function";
     case object_type::String:
         return "String";
+    case object_type::Builtin:
+        return "Builtin";
     }
 
     std::unreachable();

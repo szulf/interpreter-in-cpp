@@ -5,11 +5,31 @@
 #include <memory>
 #include <ranges>
 #include <type_traits>
+#include <unordered_map>
 #include <vector>
 
 namespace interp {
 
 namespace eval {
+
+static auto let_builtin(std::vector<std::unique_ptr<object::object>> args) -> std::unique_ptr<object::object> {
+    if (args.size() != 1) {
+        return std::make_unique<object::error>(std::format("wrong number of arguments. got: {}, want: 1", args.size()));
+    }
+
+    if (!dynamic_cast<object::string*>(args[0].get())) {
+        return std::make_unique<object::error>(
+            std::format("argument to 'len' not supported, got: {}", object::get_object_type_string(args[0]->type()))
+        );
+    }
+
+    auto& str{dynamic_cast<object::string&>(*args[0])};
+    return std::make_unique<object::integer>(str.value.size());
+}
+
+static auto builtins = std::unordered_map<std::string, object::builtin>{
+    {"len", {let_builtin}},
+};
 
 static auto is_error(object::object* obj) -> bool {
     if (obj != nullptr) {
@@ -203,30 +223,39 @@ static auto eval_expressions(const std::vector<std::unique_ptr<ast::expression>>
     return ret;
 }
 
-static auto apply_function(object::object& function, std::vector<std::unique_ptr<object::object>> args)
+static auto apply_function(std::unique_ptr<object::object>& function, std::vector<std::unique_ptr<object::object>> args)
     -> std::unique_ptr<object::object> {
-    auto& fn{dynamic_cast<object::function&>(function)};
+    if (dynamic_cast<object::function*>(function.get())) {
+        auto& fn{dynamic_cast<object::function&>(*function)};
 
-    auto env{std::make_unique<object::environment>(&fn.env_outer)};
-    for (const auto& [param, arg] : std::ranges::zip_view(fn.parameters, args)) {
-        env->set(dynamic_cast<const ast::identifier&>(*param).value, std::move(arg));
-    }
+        auto env{std::make_unique<object::environment>(&fn.env_outer)};
+        for (const auto& [param, arg] : std::ranges::zip_view(fn.parameters, args)) {
+            env->set(dynamic_cast<const ast::identifier&>(*param).value, std::move(arg));
+        }
 
-    auto evaluated{eval(*fn.body, *env)};
+        auto evaluated{eval(*fn.body, *env)};
 
-    if (dynamic_cast<object::function*>(evaluated.get())) {
-        fn.env_outer.envs_inner.push_back(std::move(env));
-    }
-
-    if (auto val{dynamic_cast<object::return_value*>(evaluated.get())}) {
-        if (dynamic_cast<object::function*>(val->value.get())) {
+        if (dynamic_cast<object::function*>(evaluated.get())) {
             fn.env_outer.envs_inner.push_back(std::move(env));
         }
 
-        return std::move(val->value);
+        if (auto val{dynamic_cast<object::return_value*>(evaluated.get())}) {
+            if (dynamic_cast<object::function*>(val->value.get())) {
+                fn.env_outer.envs_inner.push_back(std::move(env));
+            }
+
+            return std::move(val->value);
+        }
+
+        return evaluated;
+    } else if (dynamic_cast<object::builtin*>(function.get())) {
+        auto& fn{dynamic_cast<object::builtin&>(*function)};
+        return fn.fn(std::move(args));
     }
 
-    return evaluated;
+    return std::make_unique<object::error>(
+        std::format("not a function: {}", object::get_object_type_string(function->type()))
+    );
 }
 
 auto eval(ast::node& node, object::environment& env) -> std::unique_ptr<object::object> {
@@ -301,6 +330,10 @@ auto eval(ast::node& node, object::environment& env) -> std::unique_ptr<object::
             return (*val)->clone();
         }
 
+        if (builtins.contains(n->value)) {
+            return builtins[n->value].clone();
+        }
+
         return std::make_unique<object::error>(std::format("identifier not found: {}", n->value));
 
     } else if (auto n{dynamic_cast<ast::fn_expression*>(&node)}) {
@@ -317,7 +350,7 @@ auto eval(ast::node& node, object::environment& env) -> std::unique_ptr<object::
             return std::move(args[0]);
         }
 
-        return apply_function(*fn, std::move(args));
+        return apply_function(fn, std::move(args));
     } else if (auto n{dynamic_cast<ast::string_literal*>(&node)}) {
         return std::make_unique<object::string>(n->value);
     }
@@ -326,5 +359,4 @@ auto eval(ast::node& node, object::environment& env) -> std::unique_ptr<object::
 }
 
 }
-
 }

@@ -6,6 +6,7 @@
 #include "parser.h"
 #include "types.h"
 #include <memory>
+#include <print>
 #include <string_view>
 
 static auto test_eval(std::string_view input) -> std::unique_ptr<interp::object::object> {
@@ -346,4 +347,40 @@ TEST(eval, string_concat) {
     auto evaluated{test_eval(input)};
     auto& str{dynamic_cast<object::string&>(*evaluated)};
     ASSERT_EQ(str.value, "Hello World");
+}
+
+TEST(eval, builtins) {
+    using namespace interp;
+
+    struct builtin_test {
+        std::string_view input{};
+        std::variant<i64, std::string> expected{};
+    };
+
+    std::array tests{
+        builtin_test{"len(\"\")",             0                                              },
+        builtin_test{"len(\"four\")",         4                                              },
+        builtin_test{"len(\"hello world\")",  11                                             },
+        builtin_test{"len(1)",                "argument to 'len' not supported, got: Integer"},
+        builtin_test{"len(\"one\", \"two\")", "wrong number of arguments. got: 2, want: 1"   },
+    };
+
+    for (const auto& test : tests) {
+        auto evaluated{test_eval(test.input)};
+
+        std::visit(
+            [&](const auto& val) {
+                using T = std::decay_t<decltype(val)>;
+                if constexpr (std::is_same_v<T, i64>) {
+                    test_int_object(*evaluated, val);
+                } else if constexpr (std::is_same_v<T, std::string>) {
+                    auto& err{dynamic_cast<object::error&>(*evaluated)};
+                    if (err.message != val) {
+                        throw std::runtime_error{std::format("err.message should be '{}' is '{}'.", val, err.message)};
+                    }
+                }
+            },
+            test.expected
+        );
+    }
 }
