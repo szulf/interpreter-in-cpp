@@ -52,12 +52,11 @@ auto environment::operator==(const environment& other) const -> bool {
 auto function::to_string() const -> std::string {
     std::stringstream ss{};
     ss << "fn(";
-    for (u32 i = 0; const auto& p : parameters) {
+    for (const auto& p : parameters) {
         ss << p->to_string();
-        if (i != parameters.size()) {
+        if (p != parameters.back()) {
             ss << ", ";
         }
-        i++;
     }
     ss << ") {\n" << body->to_string() << "\n}";
 
