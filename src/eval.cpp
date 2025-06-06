@@ -3,6 +3,7 @@
 #include "object.h"
 #include <cassert>
 #include <memory>
+#include <print>
 #include <ranges>
 #include <type_traits>
 #include <unordered_map>
@@ -27,8 +28,21 @@ static auto let_builtin(std::vector<std::unique_ptr<object::object>> args) -> st
     return std::make_unique<object::integer>(str.value.size());
 }
 
+static auto puts_builtin(std::vector<std::unique_ptr<object::object>> args) -> std::unique_ptr<object::object> {
+    if (args.size() <= 0) {
+        return std::make_unique<object::error>(std::format("wrong number of arguments. needs at least one"));
+    }
+
+    for (const auto& arg : args) {
+        std::println("{}", arg->to_string());
+    }
+
+    return std::make_unique<object::null>();
+}
+
 static auto builtins = std::unordered_map<std::string, object::builtin>{
-    {"len", {let_builtin}},
+    {"len",  {let_builtin} },
+    {"puts", {puts_builtin}},
 };
 
 static auto is_error(object::object* obj) -> bool {

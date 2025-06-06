@@ -189,7 +189,7 @@ public:
     }
 
     inline auto to_string() const -> std::string override {
-        return std::format("\"{}\"", value);
+        return value;
     }
 
 public:
