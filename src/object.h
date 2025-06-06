@@ -3,6 +3,7 @@
 #include "ast.h"
 #include "types.h"
 #include <format>
+#include <functional>
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -19,6 +20,7 @@ enum class object_type : u8 {
     Error,
     Function,
     String,
+    Builtin,
 };
 
 auto get_object_type_string(object_type obj) -> std::string_view;
@@ -187,11 +189,34 @@ public:
     }
 
     inline auto to_string() const -> std::string override {
-        return std::format("\"{}\"", value);
+        return value;
     }
 
 public:
     std::string value{};
+};
+
+using builtin_function = std::function<std::unique_ptr<object>(std::vector<std::unique_ptr<object>>)>;
+
+class builtin : public object {
+public:
+    builtin() {}
+    builtin(const builtin_function& f) : fn{f} {}
+
+    inline auto clone() const -> std::unique_ptr<object> override {
+        return std::make_unique<builtin>(*this);
+    }
+
+    inline auto type() const -> object_type override {
+        return object_type::String;
+    }
+
+    inline auto to_string() const -> std::string override {
+        return "builtin function";
+    }
+
+public:
+    builtin_function fn;
 };
 
 }
