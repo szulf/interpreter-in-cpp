@@ -312,6 +312,35 @@ auto index_expression::to_string() const -> std::string {
     return std::format("({}[{}])", left->to_string(), index->to_string());
 }
 
+hash_literal::hash_literal(const hash_literal& other) : token{other.token} {
+    for (const auto& [key, val] : other.pairs) {
+        pairs[key->clone()] = val->clone();
+    }
+}
+
+auto hash_literal::clone() const -> std::unique_ptr<expression> {
+    return std::make_unique<hash_literal>(*this);
+}
+
+auto hash_literal::token_literal() const -> std::string {
+    return token.literal;
+}
+
+auto hash_literal::to_string() const -> std::string {
+    std::stringstream ss{};
+
+    ss << "{";
+    for (u32 i{0}; const auto& [key, val] : pairs) {
+        ss << key->to_string() << ": " << val->to_string();
+        if (i != pairs.size() - 1) {
+            ss << ", ";
+        }
+    }
+    ss << "}";
+
+    return ss.str();
+}
+
 }
 
 }

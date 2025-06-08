@@ -168,6 +168,34 @@ auto parse_index_expression(std::unique_ptr<ast::expression> left, parser& p) ->
     return expr;
 }
 
+auto parse_hash_literal(parser& p) -> std::unique_ptr<ast::expression> {
+    auto expr{std::make_unique<ast::hash_literal>(p.curr_token)};
+
+    while (p.peek_token.type != token::token_type::Rbrace) {
+        p.next_token();
+        auto key = p.parse_expr(expr_precedence::Lowest);
+
+        if (!p.expect_peek(token::token_type::Colon)) {
+            return nullptr;
+        }
+
+        p.next_token();
+        auto val = p.parse_expr(expr_precedence::Lowest);
+
+        expr->pairs[std::move(key)] = std::move(val);
+
+        if (p.peek_token.type != token::token_type::Rbrace && !p.expect_peek(token::token_type::Comma)) {
+            return nullptr;
+        }
+    }
+
+    if (!p.expect_peek(token::token_type::Rbrace)) {
+        return nullptr;
+    }
+
+    return expr;
+}
+
 parser::parser(lexer::lexer& l) : lexer{l} {
     prefix_parser_fns[token::token_type::Ident] = parse_identifier;
     prefix_parser_fns[token::token_type::Int] = parse_integer_literal;
@@ -180,6 +208,7 @@ parser::parser(lexer::lexer& l) : lexer{l} {
     prefix_parser_fns[token::token_type::Function] = parse_fn_expression;
     prefix_parser_fns[token::token_type::String] = parse_string_literal;
     prefix_parser_fns[token::token_type::Lbracket] = parse_array_literal;
+    prefix_parser_fns[token::token_type::Lbrace] = parse_hash_literal;
 
     infix_parser_fns[token::token_type::Eq] = parse_infix_expression;
     infix_parser_fns[token::token_type::NotEq] = parse_infix_expression;
@@ -279,16 +308,16 @@ auto parser::parse_return_stmt() -> std::unique_ptr<ast::return_statement> {
     return stmt;
 }
 
-auto parser::parse_expr_stmt() -> std::unique_ptr<ast::expression_statement> {
-    ast::expression_statement stmt{curr_token};
+auto parser::parse_expr_stmt() -> std::unique_ptr<ast::statement> {
+    auto stmt{std::make_unique<ast::expression_statement>(curr_token)};
 
-    stmt.expr = parse_expr(expr_precedence::Lowest);
+    stmt->expr = parse_expr(expr_precedence::Lowest);
 
     if (peek_token.type == token::token_type::Semicolon) {
         next_token();
     }
 
-    return std::make_unique<ast::expression_statement>(std::move(stmt));
+    return stmt;
 }
 
 auto parser::parse_expr(expr_precedence precedence) -> std::unique_ptr<ast::expression> {

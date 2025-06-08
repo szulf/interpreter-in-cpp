@@ -5,7 +5,9 @@
 #include "parser.h"
 
 #include <print>
+#include <ranges>
 #include <stdexcept>
+#include <unordered_map>
 
 static auto check_parser_errors(const interp::parser::parser& p) -> void {
     if (p.errors.empty()) {
@@ -535,4 +537,140 @@ TEST(parser, index_expression) {
     auto& index{dynamic_cast<ast::index_expression&>(*stmt.expr)};
     test_identifier(*index.left, "myArray");
     test_infix_expression(*index.index, 1, "+", 1);
+}
+
+TEST(parser, hash_literals_string) {
+    using namespace interp;
+
+    static constexpr std::string_view input{"{\"one\": 1, \"two\": 2, \"three\": 3}"};
+
+    lexer::lexer l{input};
+    parser::parser p{l};
+    auto program{p.parse_program()};
+    check_parser_errors(p);
+
+    ASSERT_EQ(program.statements.size(), 1);
+    auto& stmt{dynamic_cast<ast::expression_statement&>(*program.statements[0])};
+    auto& hash{dynamic_cast<ast::hash_literal&>(*stmt.expr)};
+    ASSERT_EQ(hash.pairs.size(), 3);
+
+    std::unordered_map<std::string, i64> expected{
+        {"one",   1},
+        {"two",   2},
+        {"three", 3},
+    };
+
+    for (const auto& [key, val] : hash.pairs) {
+        auto& literal{dynamic_cast<ast::string_literal&>(*key)};
+        auto& expected_val{expected[literal.to_string()]};
+        test_integer_literal(*val, expected_val);
+    }
+}
+
+TEST(parser, hash_literal_empty) {
+    using namespace interp;
+
+    static constexpr std::string_view input{"{}"};
+
+    lexer::lexer l{input};
+    parser::parser p{l};
+    auto program{p.parse_program()};
+    check_parser_errors(p);
+
+    ASSERT_EQ(program.statements.size(), 1);
+    auto& stmt{dynamic_cast<ast::expression_statement&>(*program.statements[0])};
+    auto& hash{dynamic_cast<ast::hash_literal&>(*stmt.expr)};
+    ASSERT_EQ(hash.pairs.size(), 0);
+}
+
+TEST(parser, hash_literal_boolean) {
+    using namespace interp;
+
+    static constexpr std::string_view input{"{true: 1, false: 2}"};
+
+    lexer::lexer l{input};
+    parser::parser p{l};
+    auto program{p.parse_program()};
+    check_parser_errors(p);
+
+    ASSERT_EQ(program.statements.size(), 1);
+    auto& stmt{dynamic_cast<ast::expression_statement&>(*program.statements[0])};
+    auto& hash{dynamic_cast<ast::hash_literal&>(*stmt.expr)};
+    ASSERT_EQ(hash.pairs.size(), 2);
+
+    std::unordered_map<std::string, i64> expected{
+        {"true",  1},
+        {"false", 2},
+    };
+
+    for (const auto& [key, val] : hash.pairs) {
+        auto& literal{dynamic_cast<ast::boolean_expression&>(*key)};
+        auto& expected_val{expected[literal.to_string()]};
+        test_integer_literal(*val, expected_val);
+    }
+}
+
+TEST(parser, hash_literal_int) {
+    using namespace interp;
+
+    static constexpr std::string_view input{"{1: 1, 2: 2, 3: 3}"};
+
+    lexer::lexer l{input};
+    parser::parser p{l};
+    auto program{p.parse_program()};
+    check_parser_errors(p);
+
+    ASSERT_EQ(program.statements.size(), 1);
+    auto& stmt{dynamic_cast<ast::expression_statement&>(*program.statements[0])};
+    auto& hash{dynamic_cast<ast::hash_literal&>(*stmt.expr)};
+    ASSERT_EQ(hash.pairs.size(), 3);
+
+    std::unordered_map<std::string, i64> expected{
+        {"1", 1},
+        {"2", 2},
+        {"3", 3},
+    };
+
+    for (const auto& [key, val] : hash.pairs) {
+        auto& literal{dynamic_cast<ast::integer_literal&>(*key)};
+        auto& expected_val{expected[literal.to_string()]};
+        test_integer_literal(*val, expected_val);
+    }
+}
+
+TEST(parser, hash_literal_expr) {
+    using namespace interp;
+
+    static constexpr std::string_view input{"{\"one\": 0 + 1, \"two\": 10 - 8, \"three\": 15 / 5}"};
+
+    lexer::lexer l{input};
+    parser::parser p{l};
+    auto program{p.parse_program()};
+    check_parser_errors(p);
+
+    ASSERT_EQ(program.statements.size(), 1);
+    auto& stmt{dynamic_cast<ast::expression_statement&>(*program.statements[0])};
+    auto& hash{dynamic_cast<ast::hash_literal&>(*stmt.expr)};
+    ASSERT_EQ(hash.pairs.size(), 3);
+
+    std::unordered_map<std::string, std::function<void(const ast::expression&)>> expected{
+        {"one",
+         [](const ast::expression& e) {
+             test_infix_expression(e, 0, "+", 1);
+         }},
+        {"two",
+         [](const ast::expression& e) {
+             test_infix_expression(e, 10, "-", 8);
+         }},
+        {"three",
+         [](const ast::expression& e) {
+             test_infix_expression(e, 15, "/", 5);
+         }},
+    };
+
+    for (const auto& [key, val] : hash.pairs) {
+        auto& literal{dynamic_cast<ast::string_literal&>(*key)};
+        auto& test_func{expected[literal.to_string()]};
+        test_func(*val);
+    }
 }
