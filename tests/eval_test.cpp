@@ -362,13 +362,16 @@ TEST(eval, builtins) {
     };
 
     std::array tests{
-        builtin_test{"len(\"\")",             0                                              },
-        builtin_test{"len(\"four\")",         4                                              },
-        builtin_test{"len(\"hello world\")",  11                                             },
-        builtin_test{"len(1)",                "argument to 'len' not supported, got: Integer"},
-        builtin_test{"len(\"one\", \"two\")", "wrong number of arguments. got: 2, want: 1"   },
-        builtin_test{"len([1, 2, 3])",        3                                              },
-        builtin_test{"len([])",               0                                              },
+        builtin_test{"len(\"\")",             0                                               },
+        builtin_test{"len(\"four\")",         4                                               },
+        builtin_test{"len(\"hello world\")",  11                                              },
+        builtin_test{"len(1)",                "argument to 'len' not supported, got: Integer" },
+        builtin_test{"len(\"one\", \"two\")", "wrong number of arguments. got: 2, want: 1"    },
+        builtin_test{"len([1, 2, 3])",        3                                               },
+        builtin_test{"len([])",               0                                               },
+        builtin_test{"first([1, 2, 3])",      1                                               },
+        builtin_test{"first([])",             nullptr                                         },
+        builtin_test{"first(1)",              "argument to 'first' must be Array, got Integer"},
     };
 
     for (const auto& test : tests) {
