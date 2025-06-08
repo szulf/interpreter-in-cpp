@@ -499,3 +499,21 @@ TEST(parser, string_literals) {
     auto& str{dynamic_cast<ast::string_literal&>(*stmt.expr)};
     ASSERT_EQ(str.value, "hello world");
 }
+
+TEST(parser, array_literals) {
+    using namespace interp;
+
+    static constexpr std::string_view input{"[1, 2 * 2, 3 + 3]"};
+
+    lexer::lexer l{input};
+    parser::parser p{l};
+    auto program{p.parse_program()};
+    check_parser_errors(p);
+
+    ASSERT_EQ(program.statements.size(), 1);
+    auto& stmt{dynamic_cast<ast::expression_statement&>(*program.statements[0])};
+    auto& arr{dynamic_cast<ast::array_literal&>(*stmt.expr)};
+    test_integer_literal(*arr.elements[0], 1);
+    test_infix_expression(*arr.elements[1], 2, "*", 2);
+    test_infix_expression(*arr.elements[2], 3, "+", 3);
+}

@@ -250,6 +250,22 @@ public:
     std::string value{};
 };
 
+class array_literal : public expression {
+public:
+    array_literal() {}
+    array_literal(const token::token& tok) : token{tok} {}
+    array_literal(const array_literal& other);
+
+    auto expression_node() const -> void override {}
+    auto clone() const -> std::unique_ptr<expression> override;
+    auto token_literal() const -> std::string override;
+    auto to_string() const -> std::string override;
+
+public:
+    token::token token{};
+    std::vector<std::unique_ptr<expression>> elements{};
+};
+
 }
 
 }
