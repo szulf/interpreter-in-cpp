@@ -89,6 +89,14 @@ auto lexer::next_token() -> token::token {
         tok.literal = read_string();
     } break;
 
+    case '[': {
+        tok = token::token{token::token_type::Lbracket, ch};
+    } break;
+
+    case ']': {
+        tok = token::token{token::token_type::Rbracket, ch};
+    } break;
+
     case 0: {
         tok = token::token{token::token_type::End, ""};
     } break;

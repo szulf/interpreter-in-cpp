@@ -20,6 +20,7 @@ std::unordered_map<token::token_type, expr_precedence> parser::precedences{
     {token::token_type::Slash,    expr_precedence::Product    },
     {token::token_type::Asterisk, expr_precedence::Product    },
     {token::token_type::Lparen,   expr_precedence::Call       },
+    {token::token_type::Lbracket, expr_precedence::Index      },
 };
 
 auto parser::no_prefix_parse_fn(token::token_type tt) -> void {
@@ -136,13 +137,35 @@ auto parse_fn_expression(parser& p) -> std::unique_ptr<ast::fn_expression> {
 auto parse_call_expression(std::unique_ptr<ast::expression> left, parser& p) -> std::unique_ptr<ast::call_expression> {
     auto expr{std::make_unique<ast::call_expression>(p.curr_token, std::move(left))};
 
-    expr->arguments = p.parse_call_arguments();
+    expr->arguments = p.parse_expression_list(token::token_type::Rparen);
 
     return expr;
 }
 
 auto parse_string_literal(parser& p) -> std::unique_ptr<ast::expression> {
     return std::make_unique<ast::string_literal>(p.curr_token, p.curr_token.literal);
+}
+
+auto parse_array_literal(parser& p) -> std::unique_ptr<ast::expression> {
+    auto expr{std::make_unique<ast::array_literal>(p.curr_token)};
+
+    expr->elements = p.parse_expression_list(token::token_type::Rbracket);
+
+    return expr;
+}
+
+auto parse_index_expression(std::unique_ptr<ast::expression> left, parser& p) -> std::unique_ptr<ast::expression> {
+    auto expr{std::make_unique<ast::index_expression>(p.curr_token, std::move(left))};
+
+    p.next_token();
+
+    expr->index = p.parse_expr(expr_precedence::Lowest);
+
+    if (!p.expect_peek(token::token_type::Rbracket)) {
+        return nullptr;
+    }
+
+    return expr;
 }
 
 parser::parser(lexer::lexer& l) : lexer{l} {
@@ -156,6 +179,7 @@ parser::parser(lexer::lexer& l) : lexer{l} {
     prefix_parser_fns[token::token_type::If] = parse_if_expression;
     prefix_parser_fns[token::token_type::Function] = parse_fn_expression;
     prefix_parser_fns[token::token_type::String] = parse_string_literal;
+    prefix_parser_fns[token::token_type::Lbracket] = parse_array_literal;
 
     infix_parser_fns[token::token_type::Eq] = parse_infix_expression;
     infix_parser_fns[token::token_type::NotEq] = parse_infix_expression;
@@ -166,6 +190,7 @@ parser::parser(lexer::lexer& l) : lexer{l} {
     infix_parser_fns[token::token_type::Slash] = parse_infix_expression;
     infix_parser_fns[token::token_type::Asterisk] = parse_infix_expression;
     infix_parser_fns[token::token_type::Lparen] = parse_call_expression;
+    infix_parser_fns[token::token_type::Lbracket] = parse_index_expression;
 
     next_token();
     next_token();
@@ -330,12 +355,12 @@ auto parser::parse_fn_parameters() -> std::vector<std::unique_ptr<ast::expressio
     return parameters;
 }
 
-auto parser::parse_call_arguments() -> std::vector<std::unique_ptr<ast::expression>> {
+auto parser::parse_expression_list(token::token_type tok_type) -> std::vector<std::unique_ptr<ast::expression>> {
     std::vector<std::unique_ptr<ast::expression>> parameters{};
 
     next_token();
 
-    if (curr_token.type == token::token_type::Rparen) {
+    if (curr_token.type == tok_type) {
         return parameters;
     }
 
@@ -348,7 +373,7 @@ auto parser::parse_call_arguments() -> std::vector<std::unique_ptr<ast::expressi
         parameters.emplace_back(parse_expr(expr_precedence::Lowest));
     }
 
-    if (!expect_peek(token::token_type::Rparen)) {
+    if (!expect_peek(tok_type)) {
         return {};
     }
 

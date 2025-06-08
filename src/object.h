@@ -21,6 +21,7 @@ enum class object_type : u8 {
     Function,
     String,
     Builtin,
+    Array,
 };
 
 auto get_object_type_string(object_type obj) -> std::string_view;
@@ -217,6 +218,25 @@ public:
 
 public:
     builtin_function fn;
+};
+
+class array : public object {
+public:
+    array() {}
+    array(const array& other);
+
+    inline auto clone() const -> std::unique_ptr<object> override {
+        return std::make_unique<array>(*this);
+    }
+
+    inline auto type() const -> object_type override {
+        return object_type::Array;
+    }
+
+    auto to_string() const -> std::string override;
+
+public:
+    std::vector<std::unique_ptr<object>> elements{};
 };
 
 }

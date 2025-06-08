@@ -127,6 +127,7 @@ TEST(lexer, next_token_3) {
 
     "foobar"
     "foo bar"
+    [1, 2];
     )"};
 
     std::array tests{
@@ -219,6 +220,13 @@ TEST(lexer, next_token_3) {
 
         token::token{token::token_type::String,    "foobar" },
         token::token{token::token_type::String,    "foo bar"},
+
+        token::token{token::token_type::Lbracket,  "["      },
+        token::token{token::token_type::Int,       "1"      },
+        token::token{token::token_type::Comma,     ","      },
+        token::token{token::token_type::Int,       "2"      },
+        token::token{token::token_type::Rbracket,  "]"      },
+        token::token{token::token_type::Semicolon, ";"      },
 
         token::token{token::token_type::End,       ""       },
     };

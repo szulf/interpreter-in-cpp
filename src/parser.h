@@ -25,6 +25,7 @@ enum class expr_precedence {
     Product,
     Prefix,
     Call,
+    Index,
 };
 
 class parser {
@@ -44,7 +45,7 @@ private:
     auto parse_expr(expr_precedence precedence) -> std::unique_ptr<ast::expression>;
     auto parse_block_stmt() -> std::unique_ptr<ast::block_statement>;
     auto parse_fn_parameters() -> std::vector<std::unique_ptr<ast::expression>>;
-    auto parse_call_arguments() -> std::vector<std::unique_ptr<ast::expression>>;
+    auto parse_expression_list(token::token_type tok_type) -> std::vector<std::unique_ptr<ast::expression>>;
 
     auto peek_error(token::token_type t) -> void;
 
@@ -58,6 +59,9 @@ private:
     friend auto parse_fn_expression(parser& p) -> std::unique_ptr<ast::fn_expression>;
     friend auto parse_call_expression(std::unique_ptr<ast::expression> left, parser& p)
         -> std::unique_ptr<ast::call_expression>;
+    friend auto parse_array_literal(parser& p) -> std::unique_ptr<ast::expression>;
+    friend auto parse_index_expression(std::unique_ptr<ast::expression> left, parser& p)
+        -> std::unique_ptr<ast::expression>;
 
     auto curr_precedence() -> expr_precedence;
     auto peek_precedence() -> expr_precedence;

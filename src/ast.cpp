@@ -271,6 +271,47 @@ auto string_literal::to_string() const -> std::string {
     return token.literal;
 }
 
+array_literal::array_literal(const array_literal& other) : token{other.token} {
+    for (const auto& elem : other.elements) {
+        elements.emplace_back(elem->clone());
+    }
+}
+
+auto array_literal::clone() const -> std::unique_ptr<expression> {
+    return std::make_unique<array_literal>(*this);
+}
+
+auto array_literal::token_literal() const -> std::string {
+    return token.literal;
+}
+
+auto array_literal::to_string() const -> std::string {
+    std::stringstream ss{};
+
+    ss << "[";
+    for (const auto& elem : elements) {
+        ss << elem->to_string();
+        if (elem != elements.back()) {
+            ss << ", ";
+        }
+    }
+    ss << "]";
+
+    return ss.str();
+}
+
+auto index_expression::clone() const -> std::unique_ptr<expression> {
+    return std::make_unique<index_expression>(*this);
+}
+
+auto index_expression::token_literal() const -> std::string {
+    return token.literal;
+}
+
+auto index_expression::to_string() const -> std::string {
+    return std::format("({}[{}])", left->to_string(), index->to_string());
+}
+
 }
 
 }

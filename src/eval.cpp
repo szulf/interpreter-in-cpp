@@ -18,14 +18,96 @@ static auto let_builtin(std::vector<std::unique_ptr<object::object>> args) -> st
         return std::make_unique<object::error>(std::format("wrong number of arguments. got: {}, want: 1", args.size()));
     }
 
-    if (!dynamic_cast<object::string*>(args[0].get())) {
-        return std::make_unique<object::error>(
-            std::format("argument to 'len' not supported, got: {}", object::get_object_type_string(args[0]->type()))
-        );
+    if (dynamic_cast<object::string*>(args[0].get())) {
+        auto& str{dynamic_cast<object::string&>(*args[0])};
+        return std::make_unique<object::integer>(str.value.size());
+    } else if (dynamic_cast<object::array*>(args[0].get())) {
+        auto& arr{dynamic_cast<object::array&>(*args[0])};
+        return std::make_unique<object::integer>(arr.elements.size());
     }
 
-    auto& str{dynamic_cast<object::string&>(*args[0])};
-    return std::make_unique<object::integer>(str.value.size());
+    return std::make_unique<object::error>(
+        std::format("argument to 'len' not supported, got: {}", object::get_object_type_string(args[0]->type()))
+    );
+}
+
+static auto first_builtin(std::vector<std::unique_ptr<object::object>> args) -> std::unique_ptr<object::object> {
+    if (args.size() != 1) {
+        return std::make_unique<object::error>(std::format("wrong number of arguments. got: {}, want: 1", args.size()));
+    }
+
+    if (dynamic_cast<object::array*>(args[0].get())) {
+        auto& arr{dynamic_cast<object::array&>(*args[0])};
+        if (arr.elements.size() < 1) {
+            return std::make_unique<object::null>();
+        }
+        return arr.elements.front()->clone();
+    }
+
+    return std::make_unique<object::error>(
+        std::format("argument to 'first' must be Array, got {}", object::get_object_type_string(args[0]->type()))
+    );
+}
+
+static auto last_builtin(std::vector<std::unique_ptr<object::object>> args) -> std::unique_ptr<object::object> {
+    if (args.size() != 1) {
+        return std::make_unique<object::error>(std::format("wrong number of arguments. got: {}, want: 1", args.size()));
+    }
+
+    if (dynamic_cast<object::array*>(args[0].get())) {
+        auto& arr{dynamic_cast<object::array&>(*args[0])};
+        if (arr.elements.size() < 1) {
+            return std::make_unique<object::null>();
+        }
+        return arr.elements.back()->clone();
+    }
+
+    return std::make_unique<object::error>(
+        std::format("argument to 'last' must be Array, got {}", object::get_object_type_string(args[0]->type()))
+    );
+}
+
+static auto rest_builtin(std::vector<std::unique_ptr<object::object>> args) -> std::unique_ptr<object::object> {
+    if (args.size() != 1) {
+        return std::make_unique<object::error>(std::format("wrong number of arguments. got: {}, want: 1", args.size()));
+    }
+
+    if (dynamic_cast<object::array*>(args[0].get())) {
+        auto& arr{dynamic_cast<object::array&>(*args[0])};
+        if (arr.elements.size() < 1) {
+            return std::make_unique<object::null>();
+        }
+
+        auto clone = arr.clone();
+        auto& arr_clone{dynamic_cast<object::array&>(*clone)};
+        arr_clone.elements.erase(arr_clone.elements.begin());
+
+        return clone;
+    }
+
+    return std::make_unique<object::error>(
+        std::format("argument to 'rest' must be Array, got {}", object::get_object_type_string(args[0]->type()))
+    );
+}
+
+static auto push_builtin(std::vector<std::unique_ptr<object::object>> args) -> std::unique_ptr<object::object> {
+    if (args.size() != 2) {
+        return std::make_unique<object::error>(std::format("wrong number of arguments. got: {}, want: 2", args.size()));
+    }
+
+    if (dynamic_cast<object::array*>(args[0].get())) {
+        auto& arr{dynamic_cast<object::array&>(*args[0])};
+
+        auto clone = arr.clone();
+        auto& arr_clone{dynamic_cast<object::array&>(*clone)};
+        arr_clone.elements.emplace_back(std::move(args[1]));
+
+        return clone;
+    }
+
+    return std::make_unique<object::error>(
+        std::format("argument to 'push' must be Array, got {}", object::get_object_type_string(args[0]->type()))
+    );
 }
 
 static auto puts_builtin(std::vector<std::unique_ptr<object::object>> args) -> std::unique_ptr<object::object> {
@@ -41,8 +123,12 @@ static auto puts_builtin(std::vector<std::unique_ptr<object::object>> args) -> s
 }
 
 static auto builtins = std::unordered_map<std::string, object::builtin>{
-    {"len",  {let_builtin} },
-    {"puts", {puts_builtin}},
+    {"len",   {let_builtin}  },
+    {"first", {first_builtin}},
+    {"last",  {last_builtin} },
+    {"rest",  {rest_builtin} },
+    {"push",  {push_builtin} },
+    {"puts",  {puts_builtin} },
 };
 
 static auto is_error(object::object* obj) -> bool {
@@ -365,8 +451,44 @@ auto eval(ast::node& node, object::environment& env) -> std::unique_ptr<object::
         }
 
         return apply_function(fn, std::move(args));
+
     } else if (auto n{dynamic_cast<ast::string_literal*>(&node)}) {
         return std::make_unique<object::string>(n->value);
+
+    } else if (auto n{dynamic_cast<ast::array_literal*>(&node)}) {
+        auto arr{std::make_unique<object::array>()};
+        arr->elements = eval_expressions(n->elements, env);
+
+        if (arr->elements.size() == 1 && is_error(arr->elements[0].get())) {
+            return std::move(arr->elements[0]);
+        }
+
+        return arr;
+    } else if (auto n{dynamic_cast<ast::index_expression*>(&node)}) {
+        auto left{eval(*n->left, env)};
+        if (is_error(left.get())) {
+            return left;
+        }
+
+        auto index{eval(*n->index, env)};
+        if (is_error(index.get())) {
+            return index;
+        }
+
+        if (left->type() == object::object_type::Array && index->type() == object::object_type::Integer) {
+            auto& arr{dynamic_cast<object::array&>(*left)};
+            auto& idx{dynamic_cast<object::integer&>(*index).value};
+
+            if (idx >= static_cast<i64>(arr.elements.size()) || idx < 0) {
+                return std::make_unique<object::null>();
+            }
+
+            return arr.elements[static_cast<usize>(idx)]->clone();
+        } else {
+            return std::make_unique<object::error>(
+                std::format("index not supported: {}", object::get_object_type_string(left->type()))
+            );
+        }
     }
 
     return nullptr;
