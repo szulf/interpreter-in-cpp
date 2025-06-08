@@ -341,6 +341,8 @@ TEST(parser, operator_precedence) {
         precedence_test{"a + add(b * c) + d",                        "((a + add((b * c))) + d)"                       },
         precedence_test{"add(a, b, 1, 2 * 3, 4 + 5, add(6, 7 * 8))", "add(a, b, 1, (2 * 3), (4 + 5), add(6, (7 * 8)))"},
         precedence_test{"add(a + b + c * d / f + g)",                "add((((a + b) + ((c * d) / f)) + g))"           },
+        precedence_test{"a * [1, 2, 3, 4][b * c] * d",               "((a * ([1, 2, 3, 4][(b * c)])) * d)"            },
+        precedence_test{"add(a * b[2], b[1], 2 * [1, 2][1])",        "add((a * (b[2])), (b[1]), (2 * ([1, 2][1])))"   },
     };
 
     for (const auto& test : tests) {
@@ -516,4 +518,21 @@ TEST(parser, array_literals) {
     test_integer_literal(*arr.elements[0], 1);
     test_infix_expression(*arr.elements[1], 2, "*", 2);
     test_infix_expression(*arr.elements[2], 3, "+", 3);
+}
+
+TEST(parser, index_expression) {
+    using namespace interp;
+
+    static constexpr std::string_view input{"myArray[1 + 1]"};
+
+    lexer::lexer l{input};
+    parser::parser p{l};
+    auto program{p.parse_program()};
+    check_parser_errors(p);
+
+    ASSERT_EQ(program.statements.size(), 1);
+    auto& stmt{dynamic_cast<ast::expression_statement&>(*program.statements[0])};
+    auto& index{dynamic_cast<ast::index_expression&>(*stmt.expr)};
+    test_identifier(*index.left, "myArray");
+    test_infix_expression(*index.index, 1, "+", 1);
 }

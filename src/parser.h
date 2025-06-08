@@ -25,6 +25,7 @@ enum class expr_precedence {
     Product,
     Prefix,
     Call,
+    Index,
 };
 
 class parser {
@@ -59,6 +60,8 @@ private:
     friend auto parse_call_expression(std::unique_ptr<ast::expression> left, parser& p)
         -> std::unique_ptr<ast::call_expression>;
     friend auto parse_array_literal(parser& p) -> std::unique_ptr<ast::expression>;
+    friend auto parse_index_expression(std::unique_ptr<ast::expression> left, parser& p)
+        -> std::unique_ptr<ast::expression>;
 
     auto curr_precedence() -> expr_precedence;
     auto peek_precedence() -> expr_precedence;

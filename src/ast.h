@@ -266,6 +266,24 @@ public:
     std::vector<std::unique_ptr<expression>> elements{};
 };
 
+class index_expression : public expression {
+public:
+    index_expression() {}
+    index_expression(const token::token& tok, std::unique_ptr<expression> l) : token{tok}, left{std::move(l)} {}
+    index_expression(const index_expression& other)
+        : token{other.token}, left{other.left->clone()}, index{other.index->clone()} {}
+
+    auto expression_node() const -> void override {}
+    auto clone() const -> std::unique_ptr<expression> override;
+    auto token_literal() const -> std::string override;
+    auto to_string() const -> std::string override;
+
+public:
+    token::token token{};
+    std::unique_ptr<expression> left{};
+    std::unique_ptr<expression> index{};
+};
+
 }
 
 }
