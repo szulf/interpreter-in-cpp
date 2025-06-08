@@ -402,3 +402,34 @@ TEST(eval, array_literal) {
     test_int_object(*result.elements[2], 6);
 }
 
+TEST(eval, index_expression) {
+    using namespace interp;
+
+    struct index_test {
+        std::string_view input{};
+        std::optional<i64> expected{};
+    };
+
+    std::array tests{
+        index_test{"[1, 2, 3][0]",                                                   1           },
+        index_test{"[1, 2, 3][1]",                                                   2           },
+        index_test{"[1, 2, 3][2]",                                                   3           },
+        index_test{"let i = 0; [1][i];",                                             1           },
+        index_test{"[1, 2, 3][1 + 1];",                                              3           },
+        index_test{"let myArray = [1, 2, 3]; myArray[2];",                           3           },
+        index_test{"let myArray = [1, 2, 3]; myArray[0] + myArray[1] + myArray[2];", 6           },
+        index_test{"let myArray = [1, 2, 3]; let i = myArray[0]; myArray[i]",        2           },
+        index_test{"[1, 2, 3][3]",                                                   std::nullopt},
+        index_test{"[1, 2, 3][-1]",                                                  std::nullopt},
+    };
+
+    for (const auto& test : tests) {
+        auto evaluated{test_eval(test.input)};
+
+        if (test.expected.has_value()) {
+            test_int_object(*evaluated, *test.expected);
+        } else {
+            test_null_object(*evaluated);
+        }
+    }
+}

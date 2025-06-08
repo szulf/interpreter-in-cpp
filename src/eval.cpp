@@ -378,6 +378,31 @@ auto eval(ast::node& node, object::environment& env) -> std::unique_ptr<object::
         }
 
         return arr;
+    } else if (auto n{dynamic_cast<ast::index_expression*>(&node)}) {
+        auto left{eval(*n->left, env)};
+        if (is_error(left.get())) {
+            return left;
+        }
+
+        auto index{eval(*n->index, env)};
+        if (is_error(index.get())) {
+            return index;
+        }
+
+        if (left->type() == object::object_type::Array && index->type() == object::object_type::Integer) {
+            auto& arr{dynamic_cast<object::array&>(*left)};
+            auto& idx{dynamic_cast<object::integer&>(*index).value};
+
+            if (idx >= static_cast<i64>(arr.elements.size()) || idx < 0) {
+                return std::make_unique<object::null>();
+            }
+
+            return arr.elements[static_cast<usize>(idx)]->clone();
+        } else {
+            return std::make_unique<object::error>(
+                std::format("index not supported: {}", object::get_object_type_string(left->type()))
+            );
+        }
     }
 
     return nullptr;
