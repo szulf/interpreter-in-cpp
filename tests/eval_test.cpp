@@ -377,6 +377,8 @@ TEST(eval, builtins) {
         builtin_test{"last(1)",               "argument to 'last' must be Array, got Integer" },
         builtin_test{"rest([1, 2, 3])",       std::vector<i64>{2, 3}                          },
         builtin_test{"rest([])",              nullptr                                         },
+        builtin_test{"push([], 1)",           std::vector<i64>{1}                             },
+        builtin_test{"push(1, 1)",            "argument to 'push' must be Array, got Integer" },
     };
 
     for (const auto& test : tests) {
