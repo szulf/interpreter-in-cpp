@@ -365,8 +365,19 @@ auto eval(ast::node& node, object::environment& env) -> std::unique_ptr<object::
         }
 
         return apply_function(fn, std::move(args));
+
     } else if (auto n{dynamic_cast<ast::string_literal*>(&node)}) {
         return std::make_unique<object::string>(n->value);
+
+    } else if (auto n{dynamic_cast<ast::array_literal*>(&node)}) {
+        auto arr{std::make_unique<object::array>()};
+        arr->elements = eval_expressions(n->elements, env);
+
+        if (arr->elements.size() == 1 && is_error(arr->elements[0].get())) {
+            return std::move(arr->elements[0]);
+        }
+
+        return arr;
     }
 
     return nullptr;

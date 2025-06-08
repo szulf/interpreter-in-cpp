@@ -1,3 +1,4 @@
+#include <cstddef>
 #include <gtest/gtest.h>
 
 #include "eval.h"
@@ -6,8 +7,10 @@
 #include "parser.h"
 #include "types.h"
 #include <memory>
+#include <optional>
 #include <print>
 #include <string_view>
+#include <type_traits>
 
 static auto test_eval(std::string_view input) -> std::unique_ptr<interp::object::object> {
     using namespace interp;
@@ -384,3 +387,18 @@ TEST(eval, builtins) {
         );
     }
 }
+
+TEST(eval, array_literal) {
+    using namespace interp;
+
+    static constexpr std::string_view input{"[1, 2 * 2, 3 + 3]"};
+
+    auto evaluated{test_eval(input)};
+    auto& result{dynamic_cast<object::array&>(*evaluated)};
+    ASSERT_EQ(result.elements.size(), 3);
+
+    test_int_object(*result.elements[0], 1);
+    test_int_object(*result.elements[1], 4);
+    test_int_object(*result.elements[2], 6);
+}
+

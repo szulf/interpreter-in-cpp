@@ -24,6 +24,8 @@ auto get_object_type_string(object_type obj) -> std::string_view {
         return "String";
     case object_type::Builtin:
         return "Builtin";
+    case object_type::Array:
+        return "Array";
     }
 
     std::unreachable();
@@ -67,6 +69,27 @@ function::function(const function& other) : body{other.body->clone()}, env_outer
     for (const auto& param : other.parameters) {
         parameters.emplace_back(param->clone());
     }
+}
+
+array::array(const array& other) {
+    for (const auto& elem : other.elements) {
+        elements.emplace_back(elem->clone());
+    }
+}
+
+auto array::to_string() const -> std::string {
+    std::stringstream ss{};
+
+    ss << "[";
+    for (const auto& elem : elements) {
+        ss << elem->to_string();
+        if (elem != elements.back()) {
+            ss << ", ";
+        }
+    }
+    ss << "]";
+
+    return ss.str();
 }
 
 }
