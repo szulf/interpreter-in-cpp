@@ -375,6 +375,8 @@ TEST(eval, builtins) {
         builtin_test{"last([1, 2, 3])",       3                                               },
         builtin_test{"last([])",              nullptr                                         },
         builtin_test{"last(1)",               "argument to 'last' must be Array, got Integer" },
+        builtin_test{"rest([1, 2, 3])",       std::vector<i64>{2, 3}                          },
+        builtin_test{"rest([])",              nullptr                                         },
     };
 
     for (const auto& test : tests) {
