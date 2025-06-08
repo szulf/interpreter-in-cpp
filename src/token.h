@@ -15,6 +15,7 @@ enum class token_type : u8 {
 
     Ident,
     Int,
+    String,
 
     Assign,
     Plus,
@@ -30,6 +31,7 @@ enum class token_type : u8 {
     NotEq,
 
     Comma,
+    Colon,
     Semicolon,
 
     Lparen,
@@ -46,8 +48,6 @@ enum class token_type : u8 {
     If,
     Else,
     Return,
-
-    String,
 };
 
 extern std::unordered_map<std::string_view, token_type> keywords;

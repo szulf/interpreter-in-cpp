@@ -97,6 +97,10 @@ auto lexer::next_token() -> token::token {
         tok = token::token{token::token_type::Rbracket, ch};
     } break;
 
+    case ':': {
+        tok = token::token{token::token_type::Colon, ch};
+    } break;
+
     case 0: {
         tok = token::token{token::token_type::End, ""};
     } break;
