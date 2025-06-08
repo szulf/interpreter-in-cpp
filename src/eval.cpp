@@ -41,11 +41,29 @@ static auto first_builtin(std::vector<std::unique_ptr<object::object>> args) -> 
         if (arr.elements.size() < 1) {
             return std::make_unique<object::null>();
         }
-        return arr.elements[0]->clone();
+        return arr.elements.front()->clone();
     }
 
     return std::make_unique<object::error>(
         std::format("argument to 'first' must be Array, got {}", object::get_object_type_string(args[0]->type()))
+    );
+}
+
+static auto last_builtin(std::vector<std::unique_ptr<object::object>> args) -> std::unique_ptr<object::object> {
+    if (args.size() != 1) {
+        return std::make_unique<object::error>(std::format("wrong number of arguments. got: {}, want: 1", args.size()));
+    }
+
+    if (dynamic_cast<object::array*>(args[0].get())) {
+        auto& arr{dynamic_cast<object::array&>(*args[0])};
+        if (arr.elements.size() < 1) {
+            return std::make_unique<object::null>();
+        }
+        return arr.elements.back()->clone();
+    }
+
+    return std::make_unique<object::error>(
+        std::format("argument to 'last' must be Array, got {}", object::get_object_type_string(args[0]->type()))
     );
 }
 
@@ -64,6 +82,7 @@ static auto puts_builtin(std::vector<std::unique_ptr<object::object>> args) -> s
 static auto builtins = std::unordered_map<std::string, object::builtin>{
     {"len",   {let_builtin}  },
     {"first", {first_builtin}},
+    {"last",  {last_builtin} },
     {"puts",  {puts_builtin} },
 };
 

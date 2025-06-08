@@ -372,6 +372,9 @@ TEST(eval, builtins) {
         builtin_test{"first([1, 2, 3])",      1                                               },
         builtin_test{"first([])",             nullptr                                         },
         builtin_test{"first(1)",              "argument to 'first' must be Array, got Integer"},
+        builtin_test{"last([1, 2, 3])",       3                                               },
+        builtin_test{"last([])",              nullptr                                         },
+        builtin_test{"last(1)",               "argument to 'last' must be Array, got Integer" },
     };
 
     for (const auto& test : tests) {
