@@ -18,14 +18,17 @@ static auto let_builtin(std::vector<std::unique_ptr<object::object>> args) -> st
         return std::make_unique<object::error>(std::format("wrong number of arguments. got: {}, want: 1", args.size()));
     }
 
-    if (!dynamic_cast<object::string*>(args[0].get())) {
-        return std::make_unique<object::error>(
-            std::format("argument to 'len' not supported, got: {}", object::get_object_type_string(args[0]->type()))
-        );
+    if (dynamic_cast<object::string*>(args[0].get())) {
+        auto& str{dynamic_cast<object::string&>(*args[0])};
+        return std::make_unique<object::integer>(str.value.size());
+    } else if (dynamic_cast<object::array*>(args[0].get())) {
+        auto& arr{dynamic_cast<object::array&>(*args[0])};
+        return std::make_unique<object::integer>(arr.elements.size());
     }
 
-    auto& str{dynamic_cast<object::string&>(*args[0])};
-    return std::make_unique<object::integer>(str.value.size());
+    return std::make_unique<object::error>(
+        std::format("argument to 'len' not supported, got: {}", object::get_object_type_string(args[0]->type()))
+    );
 }
 
 static auto puts_builtin(std::vector<std::unique_ptr<object::object>> args) -> std::unique_ptr<object::object> {

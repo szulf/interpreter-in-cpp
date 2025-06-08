@@ -9,6 +9,7 @@
 #include <memory>
 #include <optional>
 #include <print>
+#include <ranges>
 #include <string_view>
 #include <type_traits>
 
@@ -357,7 +358,7 @@ TEST(eval, builtins) {
 
     struct builtin_test {
         std::string_view input{};
-        std::variant<i64, std::string> expected{};
+        std::variant<i64, std::string, std::nullptr_t, std::vector<i64>> expected{};
     };
 
     std::array tests{
@@ -366,6 +367,8 @@ TEST(eval, builtins) {
         builtin_test{"len(\"hello world\")",  11                                             },
         builtin_test{"len(1)",                "argument to 'len' not supported, got: Integer"},
         builtin_test{"len(\"one\", \"two\")", "wrong number of arguments. got: 2, want: 1"   },
+        builtin_test{"len([1, 2, 3])",        3                                              },
+        builtin_test{"len([])",               0                                              },
     };
 
     for (const auto& test : tests) {
@@ -381,6 +384,15 @@ TEST(eval, builtins) {
                     if (err.message != val) {
                         throw std::runtime_error{std::format("err.message should be '{}' is '{}'.", val, err.message)};
                     }
+                } else if constexpr (std::is_same_v<T, std::vector<i64>>) {
+                    auto& arr{dynamic_cast<object::array&>(*evaluated)};
+
+                    ASSERT_EQ(arr.elements.size(), val.size());
+                    for (const auto& [elem, v] : std::ranges::zip_view(arr.elements, val)) {
+                        test_int_object(*elem, v);
+                    }
+                } else if constexpr (std::is_same_v<T, std::nullptr_t>) {
+                    test_null_object(*evaluated);
                 }
             },
             test.expected
