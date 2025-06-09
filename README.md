@@ -9,7 +9,7 @@ The language contains features like
 - arrays, strings, integers, booleans, null
 - functions and builtin functions like 'len()' or 'puts()'
 
-Example program
+### Example program
 ```
 let x = "some text";
 let double_len = fn(str) {
