@@ -41,7 +41,7 @@ private:
     auto parse_stmt() -> std::unique_ptr<ast::statement>;
     auto parse_let_stmt() -> std::unique_ptr<ast::let_statement>;
     auto parse_return_stmt() -> std::unique_ptr<ast::return_statement>;
-    auto parse_expr_stmt() -> std::unique_ptr<ast::expression_statement>;
+    auto parse_expr_stmt() -> std::unique_ptr<ast::statement>;
     auto parse_expr(expr_precedence precedence) -> std::unique_ptr<ast::expression>;
     auto parse_block_stmt() -> std::unique_ptr<ast::block_statement>;
     auto parse_fn_parameters() -> std::vector<std::unique_ptr<ast::expression>>;
@@ -62,6 +62,7 @@ private:
     friend auto parse_array_literal(parser& p) -> std::unique_ptr<ast::expression>;
     friend auto parse_index_expression(std::unique_ptr<ast::expression> left, parser& p)
         -> std::unique_ptr<ast::expression>;
+    friend auto parse_hash_literal(parser& p) -> std::unique_ptr<ast::expression>;
 
     auto curr_precedence() -> expr_precedence;
     auto peek_precedence() -> expr_precedence;

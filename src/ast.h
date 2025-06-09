@@ -3,6 +3,7 @@
 #include "token.h"
 #include <memory>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 namespace interp {
@@ -282,6 +283,22 @@ public:
     token::token token{};
     std::unique_ptr<expression> left{};
     std::unique_ptr<expression> index{};
+};
+
+class hash_literal : public expression {
+public:
+    hash_literal() {}
+    hash_literal(const token::token& tok) : token{tok} {}
+    hash_literal(const hash_literal& other);
+
+    auto expression_node() const -> void override {}
+    auto clone() const -> std::unique_ptr<expression> override;
+    auto token_literal() const -> std::string override;
+    auto to_string() const -> std::string override;
+
+public:
+    token::token token{};
+    std::unordered_map<std::unique_ptr<expression>, std::unique_ptr<expression>> pairs{};
 };
 
 }
