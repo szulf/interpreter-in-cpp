@@ -5,6 +5,7 @@
 #include "parser.h"
 
 #include <iostream>
+#include <print>
 #include <string_view>
 
 namespace interp {
@@ -12,6 +13,9 @@ namespace interp {
 namespace repl {
 
 void start(std::istream& is, std::ostream& os) {
+    std::println("Hello user! This is the {{name}} programming language!");
+    std::println("Feel free to type in commands");
+
     static constexpr std::string_view prompt{">> "};
     auto env{object::environment{}};
 
