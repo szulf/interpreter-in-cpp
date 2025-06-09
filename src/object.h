@@ -211,7 +211,7 @@ public:
     }
 
     inline auto to_string() const -> std::string override {
-        return value;
+        return std::format("\"{}\"", value);
     }
 
     auto get_hash_key() const -> hash_key override;

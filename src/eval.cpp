@@ -116,7 +116,16 @@ static auto puts_builtin(std::vector<std::unique_ptr<object::object>> args) -> s
     }
 
     for (const auto& arg : args) {
-        std::println("{}", arg->to_string());
+        switch (arg->type()) {
+        case object::object_type::String: {
+            auto& str{dynamic_cast<object::string&>(*arg)};
+            std::println("{}", str.value);
+        } break;
+
+        default: {
+            std::println("{}", arg->to_string());
+        } break;
+        }
     }
 
     return std::make_unique<object::null>();
@@ -538,6 +547,5 @@ auto eval(ast::node& node, object::environment& env) -> std::unique_ptr<object::
 
     return nullptr;
 }
-
 }
 }
