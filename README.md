@@ -24,13 +24,15 @@ or
 
 ```
 let arr = [];
-for (let x = 0; x < 5; x = x + 1) {
-    let a = x + x + 12;
+let x = 0;
+while (x < 5) {
+    let a = {x: x * x};
     puts(a);
-    push(arr, a);
+    arr = push(arr, a);
+    x = x + 1;
 }
 
-puts(a);
+puts(arr);
 ```
 (loops are not supported as of now)
 (assignment to already existing variables is not supported as of now)
