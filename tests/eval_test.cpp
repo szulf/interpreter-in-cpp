@@ -234,12 +234,12 @@ TEST(eval, error) {
     };
 
     static constexpr std::array tests{
-        error_test{"5 + true;",                     "type mismatch: Integer + Boolean"   },
-        error_test{"5 + true; 5;",                  "type mismatch: Integer + Boolean"   },
-        error_test{"-true",                         "unknown operator: -Boolean"         },
-        error_test{"true + false;",                 "unknown operator: Boolean + Boolean"},
-        error_test{"5; true + false; 5",            "unknown operator: Boolean + Boolean"},
-        error_test{"if (10 > 1) { true + false; }", "unknown operator: Boolean + Boolean"},
+        error_test{"5 + true;",                            "type mismatch: Integer + Boolean"   },
+        error_test{"5 + true; 5;",                         "type mismatch: Integer + Boolean"   },
+        error_test{"-true",                                "unknown operator: -Boolean"         },
+        error_test{"true + false;",                        "unknown operator: Boolean + Boolean"},
+        error_test{"5; true + false; 5",                   "unknown operator: Boolean + Boolean"},
+        error_test{"if (10 > 1) { true + false; }",        "unknown operator: Boolean + Boolean"},
         error_test{
                    R"(
         if (10 > 1) {
@@ -247,10 +247,11 @@ TEST(eval, error) {
                 return true + false;
             }
             return 1;
-        })",                             "unknown operator: Boolean + Boolean"
+        })",                                    "unknown operator: Boolean + Boolean"
         },
-        error_test{"foobar",                        "identifier not found: foobar"       },
-        error_test{"\"Hello\" - \"World\"",         "unknown operator: String - String"  },
+        error_test{"foobar",                               "identifier not found: foobar"       },
+        error_test{"\"Hello\" - \"World\"",                "unknown operator: String - String"  },
+        error_test{"{\"name\": \"Monkey\"}[fn(x) { x }];", "unusable as hash key: Function"     }
     };
 
     for (const auto& test : tests) {
@@ -488,5 +489,34 @@ TEST(eval, hash_literals) {
         auto& pair{hash.pairs[expected_key]};
 
         test_int_object(*pair.second, expected_val);
+    }
+}
+
+TEST(eval, index_hash_expressions) {
+    using namespace interp;
+
+    struct hash_test {
+        std::string_view input{};
+        std::optional<i64> expected{};
+    };
+
+    std::array tests{
+        hash_test{"{\"foo\" : 5}[\"foo\"]",                5           },
+        hash_test{"{\"foo\" : 5}[\"bar\"]",                std::nullopt},
+        hash_test{"let key = \"foo\"; {\"foo\" : 5}[key]", 5           },
+        hash_test{"{}[\"foo\"]",                           std::nullopt},
+        hash_test{"{5 : 5}[5]",                            5           },
+        hash_test{"{true : 5}[true]",                      5           },
+        hash_test{"{false : 5}[false]",                    5           },
+    };
+
+    for (const auto& test : tests) {
+        auto evaluated{test_eval(test.input)};
+
+        if (test.expected.has_value()) {
+            test_int_object(*evaluated, *test.expected);
+        } else {
+            test_null_object(*evaluated);
+        }
     }
 }
