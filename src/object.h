@@ -22,6 +22,7 @@ enum class object_type : u8 {
     String,
     Builtin,
     Array,
+    Hash,
 };
 
 auto get_object_type_string(object_type obj) -> std::string_view;
@@ -34,6 +35,15 @@ public:
 
     virtual auto type() const -> object_type = 0;
     virtual auto to_string() const -> std::string = 0;
+};
+
+class hash_key {
+public:
+    auto operator==(const hash_key& other) const -> bool;
+
+public:
+    object_type type{};
+    u64 value{};
 };
 
 class integer : public object {
@@ -52,6 +62,8 @@ public:
     inline auto to_string() const -> std::string override {
         return std::format("{}", value);
     }
+
+    auto get_hash_key() -> hash_key;
 
 public:
     i64 value{};
@@ -73,6 +85,8 @@ public:
     inline auto to_string() const -> std::string override {
         return std::format("{}", value);
     }
+
+    auto get_hash_key() -> hash_key;
 
 public:
     bool value{};
@@ -193,6 +207,8 @@ public:
         return value;
     }
 
+    auto get_hash_key() -> hash_key;
+
 public:
     std::string value{};
 };
@@ -237,6 +253,39 @@ public:
 
 public:
     std::vector<std::unique_ptr<object>> elements{};
+};
+
+}
+}
+
+template <>
+struct std::hash<interp::object::hash_key> {
+    interp::usize operator()(const interp::object::hash_key& hk) const noexcept {
+        interp::usize h1 = std::hash<interp::u64>{}(hk.value);
+        interp::usize h2 = std::hash<interp::u64>{}(static_cast<interp::u64>(hk.type));
+
+        return h1 ^ (h2 << 1);
+    }
+};
+
+namespace interp {
+
+namespace object {
+
+class hash : public object {
+public:
+    inline auto clone() const -> std::unique_ptr<object> override {
+        return std::make_unique<hash>(*this);
+    }
+
+    inline auto type() const -> object_type override {
+        return object_type::Hash;
+    }
+
+    auto to_string() const -> std::string override;
+
+public:
+    std::unordered_map<hash_key, std::pair<std::unique_ptr<object>, std::unique_ptr<object>>> pairs{};
 };
 
 }

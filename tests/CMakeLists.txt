@@ -28,6 +28,7 @@ add_executable(interp_tests
     parser_test.cpp
     ast_test.cpp
     eval_test.cpp
+    object_test.cpp
     ${SRC_FILES}
 )
 

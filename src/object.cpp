@@ -1,4 +1,5 @@
 #include "object.h"
+#include <functional>
 #include <sstream>
 #include <utility>
 
@@ -29,6 +30,24 @@ auto get_object_type_string(object_type obj) -> std::string_view {
     }
 
     std::unreachable();
+}
+
+auto hash_key::operator==(const hash_key& other) const -> bool {
+    return type == other.type && value == other.value;
+}
+
+auto integer::get_hash_key() -> hash_key {
+    return hash_key{object_type::Integer, static_cast<u64>(value)};
+}
+
+auto boolean::get_hash_key() -> hash_key {
+    return hash_key{object_type::Boolean, static_cast<u64>(value)};
+}
+
+auto string::get_hash_key() -> hash_key {
+    static std::hash<std::string> hasher{};
+
+    return hash_key{object_type::String, hasher(value)};
 }
 
 auto environment::get(const std::string& name) const -> const std::unique_ptr<object>* {
@@ -88,6 +107,21 @@ auto array::to_string() const -> std::string {
         }
     }
     ss << "]";
+
+    return ss.str();
+}
+
+auto hash::to_string() const -> std::string {
+    std::stringstream ss{};
+
+    ss << "{";
+    for (u32 i{0}; const auto& [k, val] : pairs) {
+        ss << val.first->to_string() << ": " << val.second->to_string();
+        if (i != pairs.size() - 1) {
+            ss << ", ";
+        }
+    }
+    ss << "}";
 
     return ss.str();
 }
