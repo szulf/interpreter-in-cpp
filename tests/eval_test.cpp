@@ -8,7 +8,6 @@
 #include "types.h"
 #include <memory>
 #include <optional>
-#include <print>
 #include <ranges>
 #include <string_view>
 #include <type_traits>
@@ -453,5 +452,41 @@ TEST(eval, index_expression) {
         } else {
             test_null_object(*evaluated);
         }
+    }
+}
+
+TEST(eval, hash_literals) {
+    using namespace interp;
+
+    static constexpr std::string_view input{R"(
+    let two = "two";
+    {
+        "one": 10 - 9,
+        two: 1 + 1,
+        "thr" + "ee": 6 / 2,
+        4: 4,
+        true: 5,
+        false: 6
+    }
+    )"};
+
+    auto evaluated{test_eval(input)};
+    auto& hash{dynamic_cast<object::hash&>(*evaluated)};
+
+    std::unordered_map<object::hash_key, i64> expected{
+        {object::string{"one"}.get_hash_key(),   1},
+        {object::string{"two"}.get_hash_key(),   2},
+        {object::string{"three"}.get_hash_key(), 3},
+        {object::integer{4}.get_hash_key(),      4},
+        {object::boolean{true}.get_hash_key(),   5},
+        {object::boolean{false}.get_hash_key(),  6},
+    };
+
+    ASSERT_EQ(hash.pairs.size(), expected.size());
+
+    for (const auto& [expected_key, expected_val] : expected) {
+        auto& pair{hash.pairs[expected_key]};
+
+        test_int_object(*pair.second, expected_val);
     }
 }

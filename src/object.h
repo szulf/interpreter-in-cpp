@@ -46,7 +46,14 @@ public:
     u64 value{};
 };
 
-class integer : public object {
+class hashable {
+public:
+    virtual ~hashable() = default;
+
+    virtual auto get_hash_key() const -> hash_key = 0;
+};
+
+class integer : public object, public hashable {
 public:
     integer() {}
     integer(i64 val) : value{val} {}
@@ -63,13 +70,13 @@ public:
         return std::format("{}", value);
     }
 
-    auto get_hash_key() -> hash_key;
+    auto get_hash_key() const -> hash_key override;
 
 public:
     i64 value{};
 };
 
-class boolean : public object {
+class boolean : public object, public hashable {
 public:
     boolean() {}
     boolean(bool val) : value{val} {}
@@ -86,7 +93,7 @@ public:
         return std::format("{}", value);
     }
 
-    auto get_hash_key() -> hash_key;
+    auto get_hash_key() const -> hash_key override;
 
 public:
     bool value{};
@@ -190,7 +197,7 @@ public:
     environment& env_outer;
 };
 
-class string : public object {
+class string : public object, public hashable {
 public:
     string() {}
     string(const std::string& val) : value{val} {}
@@ -207,7 +214,7 @@ public:
         return value;
     }
 
-    auto get_hash_key() -> hash_key;
+    auto get_hash_key() const -> hash_key override;
 
 public:
     std::string value{};
@@ -274,6 +281,9 @@ namespace object {
 
 class hash : public object {
 public:
+    hash() {}
+    hash(const hash& other);
+
     inline auto clone() const -> std::unique_ptr<object> override {
         return std::make_unique<hash>(*this);
     }

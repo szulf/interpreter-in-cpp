@@ -27,6 +27,8 @@ auto get_object_type_string(object_type obj) -> std::string_view {
         return "Builtin";
     case object_type::Array:
         return "Array";
+    case object_type::Hash:
+        return "Hash";
     }
 
     std::unreachable();
@@ -36,15 +38,15 @@ auto hash_key::operator==(const hash_key& other) const -> bool {
     return type == other.type && value == other.value;
 }
 
-auto integer::get_hash_key() -> hash_key {
+auto integer::get_hash_key() const -> hash_key {
     return hash_key{object_type::Integer, static_cast<u64>(value)};
 }
 
-auto boolean::get_hash_key() -> hash_key {
+auto boolean::get_hash_key() const -> hash_key {
     return hash_key{object_type::Boolean, static_cast<u64>(value)};
 }
 
-auto string::get_hash_key() -> hash_key {
+auto string::get_hash_key() const -> hash_key {
     static std::hash<std::string> hasher{};
 
     return hash_key{object_type::String, hasher(value)};
@@ -109,6 +111,12 @@ auto array::to_string() const -> std::string {
     ss << "]";
 
     return ss.str();
+}
+
+hash::hash(const hash& other) {
+    for (const auto& [key, val] : other.pairs) {
+        pairs[key] = std::make_pair(val.first->clone(), val.second->clone());
+    }
 }
 
 auto hash::to_string() const -> std::string {

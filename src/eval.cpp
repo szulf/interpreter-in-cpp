@@ -489,6 +489,30 @@ auto eval(ast::node& node, object::environment& env) -> std::unique_ptr<object::
                 std::format("index not supported: {}", object::get_object_type_string(left->type()))
             );
         }
+    } else if (auto n{dynamic_cast<ast::hash_literal*>(&node)}) {
+        auto hash{std::make_unique<object::hash>()};
+
+        for (const auto& [key, val] : n->pairs) {
+            auto left{eval(*key, env)};
+            if (is_error(left.get())) {
+                return left;
+            }
+
+            auto right{eval(*val, env)};
+            if (is_error(right.get())) {
+                return right;
+            }
+
+            if (auto h{dynamic_cast<object::hashable*>(left.get())}) {
+                hash->pairs[h->get_hash_key()] = std::make_pair(std::move(left), std::move(right));
+            } else {
+                return std::make_unique<object::error>(
+                    std::format("unusable as hash key: {}", object::get_object_type_string(left->type()))
+                );
+            }
+        }
+
+        return hash;
     }
 
     return nullptr;
