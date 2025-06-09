@@ -301,6 +301,24 @@ public:
     std::unordered_map<std::unique_ptr<expression>, std::unique_ptr<expression>> pairs{};
 };
 
+class assign_expression : public expression {
+public:
+    assign_expression() {}
+    assign_expression(const token::token& tok, std::unique_ptr<expression> n) : token{tok}, name{std::move(n)} {}
+    assign_expression(const assign_expression& other)
+        : token{other.token}, name{other.name->clone()}, value{other.value->clone()} {}
+
+    auto expression_node() const -> void override {}
+    auto clone() const -> std::unique_ptr<expression> override;
+    auto token_literal() const -> std::string override;
+    auto to_string() const -> std::string override;
+
+public:
+    token::token token{};
+    std::unique_ptr<expression> name{};
+    std::unique_ptr<expression> value{};
+};
+
 }
 
 }

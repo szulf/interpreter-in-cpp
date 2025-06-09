@@ -674,3 +674,69 @@ TEST(parser, hash_literal_expr) {
         test_func(*val);
     }
 }
+
+TEST(parser, assign_expressions) {
+    using namespace interp;
+
+    struct assign_test {
+        std::string_view input{};
+        std::string_view expected_identifer{};
+        std::variant<i64, bool, std::string> expected_value{};
+    };
+
+    static constexpr std::array tests{
+        assign_test{"x = 5;",      "x",      5   },
+        assign_test{"y = true;",   "y",      true},
+        assign_test{"foobar = y;", "foobar", "y" },
+    };
+
+    for (const auto& test : tests) {
+        lexer::lexer l{test.input};
+        parser::parser p{l};
+        auto program = p.parse_program();
+        check_parser_errors(p);
+
+        ASSERT_EQ(program.statements.size(), 1);
+        auto& stmt{dynamic_cast<ast::expression_statement&>(*program.statements[0])};
+        auto& assign{dynamic_cast<ast::assign_expression&>(*stmt.expr)};
+
+        auto& ident{dynamic_cast<ast::identifier&>(*assign.name)};
+
+        ASSERT_EQ(ident.value, test.expected_identifer);
+
+        std::visit(
+            [&](const auto& val) {
+                test_literal_expression(*assign.value, val);
+            },
+            test.expected_value
+        );
+    }
+}
+
+TEST(parser, assign_expressions_chained) {
+    using namespace interp;
+
+    static constexpr std::string_view input{"foobar = x = z = y"};
+
+    lexer::lexer l{input};
+    parser::parser p{l};
+    auto program = p.parse_program();
+    check_parser_errors(p);
+
+    ASSERT_EQ(program.statements.size(), 1);
+    auto& stmt{dynamic_cast<ast::expression_statement&>(*program.statements[0])};
+
+    auto& assign1{dynamic_cast<ast::assign_expression&>(*stmt.expr)};
+    auto& ident1{dynamic_cast<ast::identifier&>(*assign1.name)};
+    ASSERT_EQ(ident1.value, "foobar");
+
+    auto& assign2{dynamic_cast<ast::assign_expression&>(*assign1.value)};
+    auto& ident2{dynamic_cast<ast::identifier&>(*assign2.name)};
+    ASSERT_EQ(ident2.value, "x");
+
+    auto& assign3{dynamic_cast<ast::assign_expression&>(*assign2.value)};
+    auto& ident3{dynamic_cast<ast::identifier&>(*assign3.name)};
+    ASSERT_EQ(ident3.value, "z");
+
+    test_identifier(*assign3.value, "y");
+}

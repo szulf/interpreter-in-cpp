@@ -21,6 +21,7 @@ std::unordered_map<token::token_type, expr_precedence> parser::precedences{
     {token::token_type::Asterisk, expr_precedence::Product    },
     {token::token_type::Lparen,   expr_precedence::Call       },
     {token::token_type::Lbracket, expr_precedence::Index      },
+    {token::token_type::Assign,   expr_precedence::Assign     },
 };
 
 auto parser::no_prefix_parse_fn(token::token_type tt) -> void {
@@ -196,6 +197,24 @@ auto parse_hash_literal(parser& p) -> std::unique_ptr<ast::expression> {
     return expr;
 }
 
+auto parse_assign_expression(std::unique_ptr<ast::expression> left, parser& p) -> std::unique_ptr<ast::expression> {
+    if (!dynamic_cast<ast::identifier*>(left.get())) {
+        return nullptr;
+    }
+
+    auto expr{std::make_unique<ast::assign_expression>(p.curr_token, std::move(left))};
+
+    p.next_token();
+
+    expr->value = p.parse_expr(expr_precedence::Lowest);
+
+    if (p.peek_token.type == token::token_type::Semicolon) {
+        p.next_token();
+    }
+
+    return expr;
+}
+
 parser::parser(lexer::lexer& l) : lexer{l} {
     prefix_parser_fns[token::token_type::Ident] = parse_identifier;
     prefix_parser_fns[token::token_type::Int] = parse_integer_literal;
@@ -220,6 +239,7 @@ parser::parser(lexer::lexer& l) : lexer{l} {
     infix_parser_fns[token::token_type::Asterisk] = parse_infix_expression;
     infix_parser_fns[token::token_type::Lparen] = parse_call_expression;
     infix_parser_fns[token::token_type::Lbracket] = parse_index_expression;
+    infix_parser_fns[token::token_type::Assign] = parse_assign_expression;
 
     next_token();
     next_token();

@@ -341,6 +341,18 @@ auto hash_literal::to_string() const -> std::string {
     return ss.str();
 }
 
+auto assign_expression::clone() const -> std::unique_ptr<expression> {
+    return std::make_unique<assign_expression>(*this);
+}
+
+auto assign_expression::token_literal() const -> std::string {
+    return token.literal;
+}
+
+auto assign_expression::to_string() const -> std::string {
+    return std::format("{} = {}", name->to_string(), value->to_string());
+}
+
 }
 
 }
