@@ -34,7 +34,6 @@ while (x < 5) {
 
 puts(arr);
 ```
-(loops are not supported as of now)
 
 ## Building
 
