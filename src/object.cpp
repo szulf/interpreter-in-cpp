@@ -68,6 +68,27 @@ auto environment::set(const std::string& name, std::unique_ptr<object> val) -> v
     store[name] = std::move(val);
 }
 
+auto environment::update(const std::string& name, std::unique_ptr<object> val) -> void {
+    if (outer && outer->store.contains(name)) {
+        outer->set(name, std::move(val));
+        return;
+    }
+
+    store[name] = std::move(val);
+}
+
+auto environment::contains(const std::string& name) const -> bool {
+    if (store.contains(name)) {
+        return true;
+    }
+
+    if (outer) {
+        return outer->contains(name);
+    }
+
+    return false;
+}
+
 auto environment::operator==(const environment& other) const -> bool {
     return store == other.store && outer == other.outer && envs_inner == other.envs_inner;
 }

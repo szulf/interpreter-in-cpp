@@ -26,6 +26,7 @@ enum class expr_precedence {
     Prefix,
     Call,
     Index,
+    Assign,
 };
 
 class parser {
@@ -63,6 +64,8 @@ private:
     friend auto parse_index_expression(std::unique_ptr<ast::expression> left, parser& p)
         -> std::unique_ptr<ast::expression>;
     friend auto parse_hash_literal(parser& p) -> std::unique_ptr<ast::expression>;
+    friend auto parse_assign_expression(std::unique_ptr<ast::expression> left, parser& p)
+        -> std::unique_ptr<ast::expression>;
 
     auto curr_precedence() -> expr_precedence;
     auto peek_precedence() -> expr_precedence;

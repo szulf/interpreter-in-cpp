@@ -35,7 +35,6 @@ while (x < 5) {
 puts(arr);
 ```
 (loops are not supported as of now)
-(assignment to already existing variables is not supported as of now)
 
 ## Building
 
