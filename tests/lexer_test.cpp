@@ -129,6 +129,8 @@ TEST(lexer, next_token_3) {
     "foo bar"
     [1, 2];
     {"foo": "bar"}
+
+    while (x > 5)
     )"};
 
     std::array tests{
@@ -234,6 +236,13 @@ TEST(lexer, next_token_3) {
         token::token{token::token_type::Colon,     ":"      },
         token::token{token::token_type::String,    "bar"    },
         token::token{token::token_type::Rbrace,    "}"      },
+
+        token::token{token::token_type::While,     "while"  },
+        token::token{token::token_type::Lparen,    "("      },
+        token::token{token::token_type::Ident,     "x"      },
+        token::token{token::token_type::Gt,        ">"      },
+        token::token{token::token_type::Int,       "5"      },
+        token::token{token::token_type::Rparen,    ")"      },
 
         token::token{token::token_type::End,       ""       },
     };

@@ -13,6 +13,7 @@ std::unordered_map<std::string_view, token_type> keywords{
     {"if",     token_type::If      },
     {"else",   token_type::Else    },
     {"return", token_type::Return  },
+    {"while",  token_type::While   },
 };
 
 auto lookup_ident(std::string_view ident) -> token_type {
@@ -87,6 +88,8 @@ auto get_token_type_string(token_type t) -> std::string_view {
         return "Rbracket";
     case token_type::Colon:
         return "Colon";
+    case token_type::While:
+        return "While";
     }
 
     std::unreachable();
