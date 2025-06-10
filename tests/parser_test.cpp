@@ -740,3 +740,24 @@ TEST(parser, assign_expressions_chained) {
 
     test_identifier(*assign3.value, "y");
 }
+
+TEST(parser, while_statement) {
+    using namespace interp;
+
+    static constexpr std::string_view input{"while(x < 5) { x }"};
+
+    lexer::lexer l{input};
+    parser::parser p{l};
+    auto program{p.parse_program()};
+    check_parser_errors(p);
+
+    ASSERT_EQ(program.statements.size(), 1);
+    auto& stmt{dynamic_cast<ast::while_statement&>(*program.statements[0])};
+
+    test_infix_expression(*stmt.condition, "x", "<", 5);
+    auto body_stmt{dynamic_cast<ast::block_statement&>(*stmt.body)};
+    ASSERT_EQ(body_stmt.statements.size(), 1);
+
+    auto& body{dynamic_cast<ast::expression_statement&>(*body_stmt.statements[0])};
+    test_identifier(*body.expr, "x");
+}
