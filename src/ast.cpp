@@ -365,6 +365,30 @@ auto while_statement::to_string() const -> std::string {
     return std::format("while {} {}", condition->to_string(), body->to_string());
 }
 
+auto break_statement::clone() const -> std::unique_ptr<statement> {
+    return std::make_unique<break_statement>(*this);
+}
+
+auto break_statement::token_literal() const -> std::string {
+    return token.literal;
+}
+
+auto break_statement::to_string() const -> std::string {
+    return token.literal;
+}
+
+auto continue_statement::clone() const -> std::unique_ptr<statement> {
+    return std::make_unique<continue_statement>(*this);
+}
+
+auto continue_statement::token_literal() const -> std::string {
+    return token.literal;
+}
+
+auto continue_statement::to_string() const -> std::string {
+    return token.literal;
+}
+
 }
 
 }

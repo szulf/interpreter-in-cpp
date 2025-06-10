@@ -48,6 +48,8 @@ private:
     auto parse_fn_parameters() -> std::vector<std::unique_ptr<ast::expression>>;
     auto parse_expression_list(token::token_type tok_type) -> std::vector<std::unique_ptr<ast::expression>>;
     auto parse_while_stmt() -> std::unique_ptr<ast::while_statement>;
+    auto parse_break_stmt() -> std::unique_ptr<ast::break_statement>;
+    auto parse_continue_stmt() -> std::unique_ptr<ast::continue_statement>;
 
     auto peek_error(token::token_type t) -> void;
 

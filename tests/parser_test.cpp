@@ -761,3 +761,35 @@ TEST(parser, while_statement) {
     auto& body{dynamic_cast<ast::expression_statement&>(*body_stmt.statements[0])};
     test_identifier(*body.expr, "x");
 }
+
+TEST(parser, break) {
+    using namespace interp;
+
+    static constexpr std::string_view input{"break;"};
+
+    lexer::lexer l{input};
+    parser::parser p{l};
+    auto program{p.parse_program()};
+    check_parser_errors(p);
+
+    ASSERT_EQ(program.statements.size(), 1);
+    auto& stmt{dynamic_cast<ast::break_statement&>(*program.statements[0])};
+
+    ASSERT_EQ(stmt.token_literal(), "break");
+}
+
+TEST(parser, continue) {
+    using namespace interp;
+
+    static constexpr std::string_view input{"continue"};
+
+    lexer::lexer l{input};
+    parser::parser p{l};
+    auto program{p.parse_program()};
+    check_parser_errors(p);
+
+    ASSERT_EQ(program.statements.size(), 1);
+    auto& stmt{dynamic_cast<ast::continue_statement&>(*program.statements[0])};
+
+    ASSERT_EQ(stmt.token_literal(), "continue");
+}
