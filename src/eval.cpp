@@ -554,6 +554,24 @@ auto eval(ast::node& node, object::environment& env) -> std::unique_ptr<object::
         env.update(ident.value, evaluated->clone());
 
         return evaluated;
+    } else if (auto n{dynamic_cast<ast::while_statement*>(&node)}) {
+        auto condition{eval(*n->condition, env)};
+        if (is_error(condition.get())) {
+            return condition;
+        }
+
+        while (is_truthy(*condition)) {
+            object::environment env_inner{&env};
+            auto evaluated{eval(*n->body, env_inner)};
+            if (is_error(evaluated.get()) || evaluated->type() == object::object_type::ReturnValue) {
+                return evaluated;
+            }
+
+            condition = eval(*n->condition, env);
+            if (is_error(condition.get())) {
+                return condition;
+            }
+        }
     }
 
     return nullptr;

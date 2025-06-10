@@ -570,3 +570,42 @@ TEST(eval, assign_expression_chain) {
     auto& str{dynamic_cast<object::string&>(*evaluated)};
     ASSERT_EQ(str.value, "barbar");
 }
+
+TEST(eval, while_statement) {
+    using namespace interp;
+
+    struct while_test {
+        std::string_view input{};
+        i64 expected{};
+    };
+
+    static constexpr std::array tests{
+        while_test{
+                   R"(
+    let x = 0;
+
+    while (x < 5) {
+        x = x + 1;
+    }
+
+    x)", 5
+        },
+        while_test{
+                   R"(
+    let x = 0;
+
+    while (x < 5) {
+        x = x + 1;
+        return x;
+    }
+
+    x)", 1
+        },
+    };
+
+    for (const auto& test : tests) {
+        auto evaluated{test_eval(test.input)};
+        auto& integer{dynamic_cast<object::integer&>(*evaluated)};
+        ASSERT_EQ(integer.value, test.expected);
+    }
+}
