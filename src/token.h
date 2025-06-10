@@ -49,6 +49,8 @@ enum class token_type : u8 {
     Else,
     Return,
     While,
+    Break,
+    Continue,
 };
 
 extern std::unordered_map<std::string_view, token_type> keywords;
