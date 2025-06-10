@@ -391,9 +391,7 @@ TEST(eval, builtins) {
                     test_int_object(*evaluated, val);
                 } else if constexpr (std::is_same_v<T, std::string>) {
                     auto& err{dynamic_cast<object::error&>(*evaluated)};
-                    if (err.message != val) {
-                        throw std::runtime_error{std::format("err.message should be '{}' is '{}'.", val, err.message)};
-                    }
+                    ASSERT_EQ(err.message, val);
                 } else if constexpr (std::is_same_v<T, std::vector<i64>>) {
                     auto& arr{dynamic_cast<object::array&>(*evaluated)};
 
@@ -519,4 +517,56 @@ TEST(eval, index_hash_expressions) {
             test_null_object(*evaluated);
         }
     }
+}
+
+TEST(eval, assign_expression) {
+    using namespace interp;
+
+    struct assign_test {
+        std::string_view input{};
+        std::variant<i64, std::string, bool> expected{};
+    };
+
+    std::array tests{
+        assign_test{"let x = 5; x = 3",        3                              },
+        assign_test{"let x = false; x = true", true                           },
+        assign_test{"x = 3;",                  "variable x does not exist yet"},
+    };
+
+    for (const auto& test : tests) {
+        auto evaluated{test_eval(test.input)};
+
+        std::visit(
+            [&](const auto& val) {
+                using T = std::decay_t<decltype(val)>;
+                if constexpr (std::is_same_v<T, i64>) {
+                    test_int_object(*evaluated, val);
+                } else if constexpr (std::is_same_v<T, bool>) {
+                    test_bool_object(*evaluated, val);
+                } else if constexpr (std::is_same_v<T, std::string>) {
+                    auto& error{dynamic_cast<object::error&>(*evaluated)};
+                    ASSERT_EQ(error.message, val);
+                }
+            },
+            test.expected
+        );
+    }
+}
+
+TEST(eval, assign_expression_chain) {
+    using namespace interp;
+
+    static constexpr std::string_view input{R"(
+    let x = 5;
+    let z = 3;
+    let foo = x;
+    let bar = "bar";
+    x = z = foo = bar;
+    z + foo;
+    )"};
+
+    auto evaluated{test_eval(input)};
+
+    auto& str{dynamic_cast<object::string&>(*evaluated)};
+    ASSERT_EQ(str.value, "barbar");
 }

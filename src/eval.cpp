@@ -543,6 +543,17 @@ auto eval(ast::node& node, object::environment& env) -> std::unique_ptr<object::
         }
 
         return hash;
+
+    } else if (auto n{dynamic_cast<ast::assign_expression*>(&node)}) {
+        auto& ident{dynamic_cast<ast::identifier&>(*n->name)};
+        if (!env.contains(ident.value)) {
+            return std::make_unique<object::error>(std::format("variable {} does not exist yet", ident.value));
+        }
+
+        auto evaluated{eval(*n->value, env)};
+        env.update(ident.value, evaluated->clone());
+
+        return evaluated;
     }
 
     return nullptr;

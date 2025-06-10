@@ -165,6 +165,8 @@ public:
 
     auto set(const std::string& name, std::unique_ptr<object> val) -> void;
     auto get(const std::string& name) const -> const std::unique_ptr<object>*;
+    auto contains(const std::string& name) const -> bool;
+    auto update(const std::string& name, std::unique_ptr<object> val) -> void;
 
     auto operator==(const environment& other) const -> bool;
 
