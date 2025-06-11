@@ -6,13 +6,16 @@ namespace interp {
 namespace token {
 
 std::unordered_map<std::string_view, token_type> keywords{
-    {"fn",     token_type::Function},
-    {"let",    token_type::Let     },
-    {"true",   token_type::True    },
-    {"false",  token_type::False   },
-    {"if",     token_type::If      },
-    {"else",   token_type::Else    },
-    {"return", token_type::Return  },
+    {"fn",       token_type::Function},
+    {"let",      token_type::Let     },
+    {"true",     token_type::True    },
+    {"false",    token_type::False   },
+    {"if",       token_type::If      },
+    {"else",     token_type::Else    },
+    {"return",   token_type::Return  },
+    {"while",    token_type::While   },
+    {"break",    token_type::Break   },
+    {"continue", token_type::Continue},
 };
 
 auto lookup_ident(std::string_view ident) -> token_type {
@@ -87,6 +90,12 @@ auto get_token_type_string(token_type t) -> std::string_view {
         return "Rbracket";
     case token_type::Colon:
         return "Colon";
+    case token_type::While:
+        return "While";
+    case token_type::Break:
+        return "Break";
+    case token_type::Continue:
+        return "Continue";
     }
 
     std::unreachable();

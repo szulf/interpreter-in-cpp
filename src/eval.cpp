@@ -141,7 +141,7 @@ static auto builtins = std::unordered_map<std::string, object::builtin>{
 };
 
 static auto is_error(object::object* obj) -> bool {
-    if (obj != nullptr) {
+    if (!obj) {
         return obj->type() == object::object_type::Error;
     }
 
@@ -164,9 +164,15 @@ static auto eval_program(const ast::program& program, object::environment& env) 
         } break;
 
         case object::object_type::Error: {
-            if (dynamic_cast<object::error*>(result.get())) {
-                return result;
-            }
+            return result;
+        } break;
+
+        case object::object_type::BreakValue: {
+            return std::make_unique<object::error>("break statement is illegal in current context");
+        } break;
+
+        case object::object_type::ContinueValue: {
+            return std::make_unique<object::error>("continue statement is illegal in current context");
         } break;
 
         default: {
@@ -186,6 +192,8 @@ static auto eval_block_stmt(const ast::block_statement& block_stmt, object::envi
 
         if (result != nullptr) {
             switch (result->type()) {
+            case object::object_type::ContinueValue:
+            case object::object_type::BreakValue:
             case object::object_type::ReturnValue:
             case object::object_type::Error: {
                 return result;
@@ -348,6 +356,14 @@ static auto apply_function(std::unique_ptr<object::object>& function, std::vecto
             fn.env_outer.envs_inner.push_back(std::move(env));
         }
 
+        if (evaluated && evaluated->type() == object::object_type::BreakValue) {
+            return std::make_unique<object::error>("break statement is illegal in current context");
+        }
+
+        if (evaluated && evaluated->type() == object::object_type::ContinueValue) {
+            return std::make_unique<object::error>("continue statement is illegal in current context");
+        }
+
         if (auto val{dynamic_cast<object::return_value*>(evaluated.get())}) {
             if (dynamic_cast<object::function*>(val->value.get())) {
                 fn.env_outer.envs_inner.push_back(std::move(env));
@@ -429,6 +445,14 @@ auto eval(ast::node& node, object::environment& env) -> std::unique_ptr<object::
         auto val{eval(*n->value, env)};
         if (is_error(val.get())) {
             return val;
+        }
+
+        if (val && val->type() == object::object_type::BreakValue) {
+            return std::make_unique<object::error>("break statement is illegal in current context");
+        }
+
+        if (val && val->type() == object::object_type::ContinueValue) {
+            return std::make_unique<object::error>("continue statement is illegal in current context");
         }
 
         env.set(n->name.value, std::move(val));
@@ -554,6 +578,34 @@ auto eval(ast::node& node, object::environment& env) -> std::unique_ptr<object::
         env.update(ident.value, evaluated->clone());
 
         return evaluated;
+    } else if (auto n{dynamic_cast<ast::while_statement*>(&node)}) {
+        auto condition{eval(*n->condition, env)};
+        if (is_error(condition.get())) {
+            return condition;
+        }
+
+        while (is_truthy(*condition)) {
+            object::environment env_inner{&env};
+            auto evaluated{eval(*n->body, env_inner)};
+            if (is_error(evaluated.get()) || evaluated->type() == object::object_type::ReturnValue) {
+                return evaluated;
+            }
+
+            if (evaluated->type() == object::object_type::BreakValue) {
+                break;
+            }
+
+            condition = eval(*n->condition, env);
+            if (is_error(condition.get())) {
+                return condition;
+            }
+        }
+
+    } else if (auto{dynamic_cast<ast::break_statement*>(&node)}) {
+        return std::make_unique<object::break_value>();
+
+    } else if (auto{dynamic_cast<ast::continue_statement*>(&node)}) {
+        return std::make_unique<object::continue_value>();
     }
 
     return nullptr;

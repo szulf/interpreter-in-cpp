@@ -319,6 +319,49 @@ public:
     std::unique_ptr<expression> value{};
 };
 
+class while_statement : public statement {
+public:
+    while_statement(const token::token& tok) : token{tok} {}
+    while_statement(const while_statement& other)
+        : token{other.token}, condition{other.condition->clone()}, body{other.body->clone()} {}
+
+    auto statement_node() const -> void override {};
+    auto clone() const -> std::unique_ptr<statement> override;
+    auto token_literal() const -> std::string override;
+    auto to_string() const -> std::string override;
+
+public:
+    token::token token{};
+    std::unique_ptr<expression> condition{};
+    std::unique_ptr<statement> body{};
+};
+
+class break_statement : public statement {
+public:
+    break_statement(const token::token& tok) : token{tok} {}
+
+    auto statement_node() const -> void override {};
+    auto clone() const -> std::unique_ptr<statement> override;
+    auto token_literal() const -> std::string override;
+    auto to_string() const -> std::string override;
+
+public:
+    token::token token{};
+};
+
+class continue_statement : public statement {
+public:
+    continue_statement(const token::token& tok) : token{tok} {}
+
+    auto statement_node() const -> void override {};
+    auto clone() const -> std::unique_ptr<statement> override;
+    auto token_literal() const -> std::string override;
+    auto to_string() const -> std::string override;
+
+public:
+    token::token token{};
+};
+
 }
 
 }

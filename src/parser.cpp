@@ -285,6 +285,15 @@ auto parser::parse_stmt() -> std::unique_ptr<ast::statement> {
     case token::token_type::Return:
         return parse_return_stmt();
 
+    case token::token_type::While:
+        return parse_while_stmt();
+
+    case token::token_type::Break:
+        return parse_break_stmt();
+
+    case token::token_type::Continue:
+        return parse_continue_stmt();
+
     default:
         return parse_expr_stmt();
     }
@@ -427,6 +436,49 @@ auto parser::parse_expression_list(token::token_type tok_type) -> std::vector<st
     }
 
     return parameters;
+}
+
+auto parser::parse_while_stmt() -> std::unique_ptr<ast::while_statement> {
+    auto stmt{std::make_unique<ast::while_statement>(curr_token)};
+
+    if (!expect_peek(token::token_type::Lparen)) {
+        return nullptr;
+    }
+
+    next_token();
+    stmt->condition = parse_expr(expr_precedence::Lowest);
+
+    if (!expect_peek(token::token_type::Rparen)) {
+        return nullptr;
+    }
+
+    if (!expect_peek(token::token_type::Lbrace)) {
+        return nullptr;
+    }
+
+    stmt->body = parse_block_stmt();
+
+    return stmt;
+}
+
+auto parser::parse_break_stmt() -> std::unique_ptr<ast::break_statement> {
+    auto stmt{std::make_unique<ast::break_statement>(curr_token)};
+
+    if (peek_token.type == token::token_type::Semicolon) {
+        next_token();
+    }
+
+    return stmt;
+}
+
+auto parser::parse_continue_stmt() -> std::unique_ptr<ast::continue_statement> {
+    auto stmt{std::make_unique<ast::continue_statement>(curr_token)};
+
+    if (peek_token.type == token::token_type::Semicolon) {
+        next_token();
+    }
+
+    return stmt;
 }
 
 auto parser::peek_error(token::token_type t) -> void {

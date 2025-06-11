@@ -29,6 +29,10 @@ auto get_object_type_string(object_type obj) -> std::string_view {
         return "Array";
     case object_type::Hash:
         return "Hash";
+    case object_type::BreakValue:
+        return "BreakValue";
+    case object_type::ContinueValue:
+        return "ContinueValue";
     }
 
     std::unreachable();
