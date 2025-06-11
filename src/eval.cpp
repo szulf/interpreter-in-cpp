@@ -443,15 +443,21 @@ auto eval(ast::node& node, object::environment& env) -> std::unique_ptr<object::
 
     } else if (auto n{dynamic_cast<ast::let_statement*>(&node)}) {
         auto val{eval(*n->value, env)};
-        if (is_error(val.get())) {
+        if (!val || is_error(val.get())) {
             return val;
         }
 
-        if (val && val->type() == object::object_type::BreakValue) {
+        if (val->type() == object::object_type::ReturnValue) {
+            auto& ret{dynamic_cast<object::return_value&>(*val)};
+            env.set(n->name.value, std::move(ret.value));
+            return nullptr;
+        }
+
+        if (val->type() == object::object_type::BreakValue) {
             return std::make_unique<object::error>("break statement is illegal in current context");
         }
 
-        if (val && val->type() == object::object_type::ContinueValue) {
+        if (val->type() == object::object_type::ContinueValue) {
             return std::make_unique<object::error>("continue statement is illegal in current context");
         }
 
