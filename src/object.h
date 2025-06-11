@@ -23,6 +23,7 @@ enum class object_type : u8 {
     Builtin,
     Array,
     Hash,
+    BreakValue,
 };
 
 auto get_object_type_string(object_type obj) -> std::string_view;
@@ -298,6 +299,21 @@ public:
 
 public:
     std::unordered_map<hash_key, std::pair<std::unique_ptr<object>, std::unique_ptr<object>>> pairs{};
+};
+
+class break_value : public object {
+public:
+    inline auto clone() const -> std::unique_ptr<object> override {
+        return std::make_unique<break_value>(*this);
+    }
+
+    inline auto type() const -> object_type override {
+        return object_type::BreakValue;
+    }
+
+    inline auto to_string() const -> std::string override {
+        return "break";
+    }
 };
 
 }
