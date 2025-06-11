@@ -171,6 +171,10 @@ static auto eval_program(const ast::program& program, object::environment& env) 
             return std::make_unique<object::error>("break statement is illegal in current context");
         } break;
 
+        case object::object_type::ContinueValue: {
+            return std::make_unique<object::error>("continue statement is illegal in current context");
+        } break;
+
         default: {
         } break;
         }
@@ -188,7 +192,7 @@ static auto eval_block_stmt(const ast::block_statement& block_stmt, object::envi
 
         if (result != nullptr) {
             switch (result->type()) {
-            // case object::object_type::ContinueValue:
+            case object::object_type::ContinueValue:
             case object::object_type::BreakValue:
             case object::object_type::ReturnValue:
             case object::object_type::Error: {
@@ -352,8 +356,12 @@ static auto apply_function(std::unique_ptr<object::object>& function, std::vecto
             fn.env_outer.envs_inner.push_back(std::move(env));
         }
 
-        if (dynamic_cast<object::break_value*>(evaluated.get())) {
+        if (evaluated && evaluated->type() == object::object_type::BreakValue) {
             return std::make_unique<object::error>("break statement is illegal in current context");
+        }
+
+        if (evaluated && evaluated->type() == object::object_type::ContinueValue) {
+            return std::make_unique<object::error>("continue statement is illegal in current context");
         }
 
         if (auto val{dynamic_cast<object::return_value*>(evaluated.get())}) {
@@ -437,8 +445,14 @@ auto eval(ast::node& node, object::environment& env) -> std::unique_ptr<object::
         auto val{eval(*n->value, env)};
         if (is_error(val.get())) {
             return val;
-        } else if (val && val->type() == object::object_type::BreakValue) {
+        }
+
+        if (val && val->type() == object::object_type::BreakValue) {
             return std::make_unique<object::error>("break statement is illegal in current context");
+        }
+
+        if (val && val->type() == object::object_type::ContinueValue) {
+            return std::make_unique<object::error>("continue statement is illegal in current context");
         }
 
         env.set(n->name.value, std::move(val));
@@ -589,6 +603,9 @@ auto eval(ast::node& node, object::environment& env) -> std::unique_ptr<object::
 
     } else if (auto{dynamic_cast<ast::break_statement*>(&node)}) {
         return std::make_unique<object::break_value>();
+
+    } else if (auto{dynamic_cast<ast::continue_statement*>(&node)}) {
+        return std::make_unique<object::continue_value>();
     }
 
     return nullptr;

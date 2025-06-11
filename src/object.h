@@ -24,6 +24,7 @@ enum class object_type : u8 {
     Array,
     Hash,
     BreakValue,
+    ContinueValue,
 };
 
 auto get_object_type_string(object_type obj) -> std::string_view;
@@ -313,6 +314,21 @@ public:
 
     inline auto to_string() const -> std::string override {
         return "break";
+    }
+};
+
+class continue_value : public object {
+public:
+    inline auto clone() const -> std::unique_ptr<object> override {
+        return std::make_unique<continue_value>(*this);
+    }
+
+    inline auto type() const -> object_type override {
+        return object_type::ContinueValue;
+    }
+
+    inline auto to_string() const -> std::string override {
+        return "continue";
     }
 };
 

@@ -653,3 +653,50 @@ TEST(eval, break_statement) {
         );
     }
 }
+
+TEST(eval, continue_statement) {
+    using namespace interp;
+
+    struct continue_test {
+        std::string_view input{};
+        std::variant<i64, std::string> expected{};
+    };
+
+    std::array tests{
+        continue_test{
+                      R"(
+        let x = 0;
+        let y = 0;
+
+        while (x < 5) {
+            x = x + 1;
+
+            if (x == 3) {
+                continue;
+            }
+
+            y = y + 1;
+        }
+
+        y)",                       4
+        },
+        continue_test{"if (true) { continue; }", "continue statement is illegal in current context"},
+    };
+
+    for (const auto& test : tests) {
+        auto evaluated{test_eval(test.input)};
+
+        std::visit(
+            [&](const auto& val) {
+                using T = std::decay_t<decltype(val)>;
+                if constexpr (std::is_same_v<T, i64>) {
+                    test_int_object(*evaluated, val);
+                } else if constexpr (std::is_same_v<T, std::string>) {
+                    auto err{dynamic_cast<object::error&>(*evaluated)};
+                    ASSERT_EQ(err.message, val);
+                }
+            },
+            test.expected
+        );
+    }
+}
