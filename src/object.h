@@ -121,7 +121,7 @@ public:
     return_value() {}
     return_value(std::unique_ptr<object> val) : value{std::move(val)} {}
 
-    return_value(const return_value& val) : value{val.clone()} {}
+    return_value(const return_value& val) : value{val.value->clone()} {}
 
     inline auto clone() const -> std::unique_ptr<object> override {
         return std::make_unique<return_value>(*this);
