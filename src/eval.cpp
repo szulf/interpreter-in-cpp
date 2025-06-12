@@ -186,6 +186,26 @@ static auto to_string_builtin(std::vector<std::unique_ptr<object::object>> args)
     return std::make_unique<object::string>(args[0]->to_string());
 }
 
+static auto parse_int_builtin(std::vector<std::unique_ptr<object::object>> args) -> std::unique_ptr<object::object> {
+    if (args.size() != 1) {
+        return std::make_unique<object::error>(std::format("wrong number of arguments. got: {}, want: 1", args.size()));
+    }
+
+    if (args[0]->type() != object::object_type::String) {
+        return std::make_unique<object::error>(std::format(
+            "argument to 'parse_int()' has to be String, got {}",
+            object::get_object_type_string(args[0]->type())
+        ));
+    }
+
+    auto& str{dynamic_cast<object::string&>(*args[0]).value};
+    try {
+        return std::make_unique<object::integer>(std::stol(str));
+    } catch (const std::exception&) {
+        return std::make_unique<object::error>(std::format("invalid argument to function 'parse_int()', got {}", str));
+    }
+}
+
 static auto builtins = std::unordered_map<std::string, object::builtin>{
     {"len",       {len_builtin}      },
     {"first",     {first_builtin}    },
@@ -196,6 +216,7 @@ static auto builtins = std::unordered_map<std::string, object::builtin>{
     {"rand",      {rand_builtin}     },
     {"gets",      {gets_builtin}     },
     {"to_string", {to_string_builtin}},
+    {"parse_int", {parse_int_builtin}},
 };
 
 static auto is_error(object::object* obj) -> bool {
