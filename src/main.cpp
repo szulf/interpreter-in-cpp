@@ -22,8 +22,14 @@ int main(int argc, char* argv[]) {
         std::ifstream ifs{argv[1]};
         std::ostringstream oss{};
         oss << ifs.rdbuf();
+        auto str = oss.str();
 
-        interp::lexer::lexer l{oss.str()};
+        if (str.empty()) {
+            std::println("file {} is empty", argv[1]);
+            return 1;
+        }
+
+        interp::lexer::lexer l{str};
         interp::parser::parser p{l};
         auto program{p.parse_program()};
         if (!p.errors.empty()) {
