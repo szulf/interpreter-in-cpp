@@ -1,6 +1,6 @@
 let arr = [];
 let x = 0;
-while (x < 5) {
+while x < 5 {
     let a = {x: x * x};
 
     if x == 3 {

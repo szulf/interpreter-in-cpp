@@ -4,6 +4,7 @@
 #include "parser.h"
 #include "repl.h"
 
+#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <print>
@@ -13,6 +14,11 @@ int main(int argc, char* argv[]) {
     if (argc == 1) {
         interp::repl::start(std::cin, std::cout);
     } else if (argc == 2) {
+        if (!std::filesystem::exists(argv[1])) {
+            std::println("file {} does not exist", argv[1]);
+            return 1;
+        }
+
         std::ifstream ifs{argv[1]};
         std::ostringstream oss{};
         oss << ifs.rdbuf();
