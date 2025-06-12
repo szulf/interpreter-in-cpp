@@ -1,0 +1,14 @@
+let arr = [];
+let x = 0;
+while (x < 5) {
+    let a = {x: x * x};
+
+    if x == 3 {
+        puts(a);
+    }
+
+    arr = push(arr, a);
+    x = x + 1;
+}
+
+puts(arr);
