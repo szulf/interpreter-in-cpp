@@ -7,6 +7,7 @@
 #include <print>
 #include <random>
 #include <ranges>
+#include <string>
 #include <type_traits>
 #include <unordered_map>
 #include <vector>
@@ -140,7 +141,7 @@ static auto rand_builtin(std::vector<std::unique_ptr<object::object>> args) -> s
 
     if (args[0]->type() != object::object_type::Integer || args[1]->type() != object::object_type::Integer) {
         return std::make_unique<object::error>(std::format(
-            "all arguments to 'rand()' have to be integers, got: {}, {}",
+            "all arguments to 'rand()' have to be Integers, got: {}, {}",
             object::get_object_type_string(args[0]->type()),
             object::get_object_type_string(args[1]->type())
         ));
@@ -177,15 +178,24 @@ static auto gets_builtin(std::vector<std::unique_ptr<object::object>> args) -> s
     return std::make_unique<object::string>(line);
 }
 
+static auto to_string_builtin(std::vector<std::unique_ptr<object::object>> args) -> std::unique_ptr<object::object> {
+    if (args.size() != 1) {
+        return std::make_unique<object::error>(std::format("wrong number of arguments. got: {}, want: 1", args.size()));
+    }
+
+    return std::make_unique<object::string>(args[0]->to_string());
+}
+
 static auto builtins = std::unordered_map<std::string, object::builtin>{
-    {"len",   {len_builtin}  },
-    {"first", {first_builtin}},
-    {"last",  {last_builtin} },
-    {"rest",  {rest_builtin} },
-    {"push",  {push_builtin} },
-    {"puts",  {puts_builtin} },
-    {"rand",  {rand_builtin} },
-    {"gets",  {gets_builtin} },
+    {"len",       {len_builtin}      },
+    {"first",     {first_builtin}    },
+    {"last",      {last_builtin}     },
+    {"rest",      {rest_builtin}     },
+    {"push",      {push_builtin}     },
+    {"puts",      {puts_builtin}     },
+    {"rand",      {rand_builtin}     },
+    {"gets",      {gets_builtin}     },
+    {"to_string", {to_string_builtin}},
 };
 
 static auto is_error(object::object* obj) -> bool {
