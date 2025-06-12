@@ -2,6 +2,7 @@
 #include "ast.h"
 #include "object.h"
 #include <cassert>
+#include <iostream>
 #include <memory>
 #include <print>
 #include <random>
@@ -165,6 +166,17 @@ static auto rand_builtin(std::vector<std::unique_ptr<object::object>> args) -> s
     return std::make_unique<object::integer>(dist(generator));
 }
 
+static auto gets_builtin(std::vector<std::unique_ptr<object::object>> args) -> std::unique_ptr<object::object> {
+    if (args.size() != 0) {
+        return std::make_unique<object::error>(std::format("wrong number of arguments. got: {}, want: 0", args.size()));
+    }
+
+    std::string line{};
+    std::getline(std::cin, line);
+
+    return std::make_unique<object::string>(line);
+}
+
 static auto builtins = std::unordered_map<std::string, object::builtin>{
     {"len",   {len_builtin}  },
     {"first", {first_builtin}},
@@ -173,6 +185,7 @@ static auto builtins = std::unordered_map<std::string, object::builtin>{
     {"push",  {push_builtin} },
     {"puts",  {puts_builtin} },
     {"rand",  {rand_builtin} },
+    {"gets",  {gets_builtin} },
 };
 
 static auto is_error(object::object* obj) -> bool {
