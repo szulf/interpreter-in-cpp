@@ -4,6 +4,7 @@
 #include <cassert>
 #include <memory>
 #include <print>
+#include <random>
 #include <ranges>
 #include <type_traits>
 #include <unordered_map>
@@ -13,7 +14,7 @@ namespace interp {
 
 namespace eval {
 
-static auto let_builtin(std::vector<std::unique_ptr<object::object>> args) -> std::unique_ptr<object::object> {
+static auto len_builtin(std::vector<std::unique_ptr<object::object>> args) -> std::unique_ptr<object::object> {
     if (args.size() != 1) {
         return std::make_unique<object::error>(std::format("wrong number of arguments. got: {}, want: 1", args.size()));
     }
@@ -131,17 +132,51 @@ static auto puts_builtin(std::vector<std::unique_ptr<object::object>> args) -> s
     return std::make_unique<object::null>();
 }
 
+static auto rand_builtin(std::vector<std::unique_ptr<object::object>> args) -> std::unique_ptr<object::object> {
+    if (args.size() != 2) {
+        return std::make_unique<object::error>(std::format("wrong number of arguments. got: {}, want: 2", args.size()));
+    }
+
+    if (args[0]->type() != object::object_type::Integer || args[1]->type() != object::object_type::Integer) {
+        return std::make_unique<object::error>(std::format(
+            "all arguments to 'rand()' have to be integers, got: {}, {}",
+            object::get_object_type_string(args[0]->type()),
+            object::get_object_type_string(args[1]->type())
+        ));
+    }
+
+    auto& int1{dynamic_cast<object::integer&>(*args[0]).value};
+    auto& int2{dynamic_cast<object::integer&>(*args[1]).value};
+
+    i64 min{};
+    i64 max{};
+    if (int1 >= int2) {
+        min = int2;
+        max = int1;
+    } else {
+        min = int1;
+        max = int2;
+    }
+
+    std::random_device rd{};
+    std::mt19937_64 generator{rd()};
+    std::uniform_int_distribution<i64> dist(min, max);
+
+    return std::make_unique<object::integer>(dist(generator));
+}
+
 static auto builtins = std::unordered_map<std::string, object::builtin>{
-    {"len",   {let_builtin}  },
+    {"len",   {len_builtin}  },
     {"first", {first_builtin}},
     {"last",  {last_builtin} },
     {"rest",  {rest_builtin} },
     {"push",  {push_builtin} },
     {"puts",  {puts_builtin} },
+    {"rand",  {rand_builtin} },
 };
 
 static auto is_error(object::object* obj) -> bool {
-    if (!obj) {
+    if (obj) {
         return obj->type() == object::object_type::Error;
     }
 
@@ -443,7 +478,7 @@ auto eval(ast::node& node, object::environment& env) -> std::unique_ptr<object::
 
     } else if (auto n{dynamic_cast<ast::let_statement*>(&node)}) {
         auto val{eval(*n->value, env)};
-        if (!val || is_error(val.get())) {
+        if (is_error(val.get()) || !val) {
             return val;
         }
 
