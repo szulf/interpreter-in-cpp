@@ -1,0 +1,24 @@
+let number = rand(0, 100);
+let guesses = [];
+
+puts("Guess a number between 0 and a 100");
+let guess = parse_int(gets());
+guesses = push(guesses, guess);
+
+while guess != number {
+    let msg = "Wrong!";
+
+    if guess > number {
+        msg = msg + " The number is less than " + to_string(guess);
+    } else {
+        msg = msg + " The number is more than " + to_string(guess);
+    }
+
+    puts(msg, "Guess a number between 0 and a 100");
+
+    guess = parse_int(gets());
+    guesses = push(guesses, guess);
+}
+
+puts("Correct!", "The number was " + to_string(number));
+puts("Here are your guesses: " + to_string(guesses))

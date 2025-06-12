@@ -1,0 +1,8 @@
+let x = "some text";
+
+let square_len = fn(str) {
+    let l = len(str)
+    return l * l;
+}
+
+puts(square_len(x))

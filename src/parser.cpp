@@ -85,16 +85,8 @@ auto parse_grouped_expression(parser& p) -> std::unique_ptr<ast::expression> {
 auto parse_if_expression(parser& p) -> std::unique_ptr<ast::if_expression> {
     auto expr{std::make_unique<ast::if_expression>(p.curr_token)};
 
-    if (!p.expect_peek(token::token_type::Lparen)) {
-        return nullptr;
-    }
-
     p.next_token();
     expr->condition = p.parse_expr(expr_precedence::Lowest);
-
-    if (!p.expect_peek(token::token_type::Rparen)) {
-        return nullptr;
-    }
 
     if (!p.expect_peek(token::token_type::Lbrace)) {
         return nullptr;
@@ -441,16 +433,8 @@ auto parser::parse_expression_list(token::token_type tok_type) -> std::vector<st
 auto parser::parse_while_stmt() -> std::unique_ptr<ast::while_statement> {
     auto stmt{std::make_unique<ast::while_statement>(curr_token)};
 
-    if (!expect_peek(token::token_type::Lparen)) {
-        return nullptr;
-    }
-
     next_token();
     stmt->condition = parse_expr(expr_precedence::Lowest);
-
-    if (!expect_peek(token::token_type::Rparen)) {
-        return nullptr;
-    }
 
     if (!expect_peek(token::token_type::Lbrace)) {
         return nullptr;

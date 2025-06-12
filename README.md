@@ -10,30 +10,8 @@ The language contains features like
 - functions and builtin functions like 'len()' or 'puts()'
 
 ### Example program
-```
-let x = "some text";
-let double_len = fn(str) {
-    let l = len(str)
-    return l * l;
-}
 
-puts(double_len(x))
-```
-
-or
-
-```
-let arr = [];
-let x = 0;
-while (x < 5) {
-    let a = {x: x * x};
-    puts(a);
-    arr = push(arr, a);
-    x = x + 1;
-}
-
-puts(arr);
-```
+For  examples look in the example/ directory
 
 ## Building
 
@@ -54,4 +32,4 @@ cmake --build build
 ```
 
 ## Issues(not going to be fixed)
-- on some errors the compiler segfaults instead of printing error(stack overflow, parser errors)
+- on some errors the compiler segfaults instead of printing error(stack overflow, maybe others)
