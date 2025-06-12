@@ -26,6 +26,15 @@ int main(int argc, char* argv[]) {
         interp::lexer::lexer l{oss.str()};
         interp::parser::parser p{l};
         auto program{p.parse_program()};
+        if (!p.errors.empty()) {
+            std::println(stderr, "parser had {} errors", p.errors.size());
+            for (const auto& err : p.errors) {
+                std::println(stderr, "parser error: {}", err);
+            }
+
+            return 1;
+        }
+
         interp::object::environment env{};
         auto evaluated{interp::eval::eval(program, env)};
         if (evaluated->type() == interp::object::object_type::Error) {
