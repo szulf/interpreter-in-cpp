@@ -31,4 +31,17 @@ add_executable(interp
 
 add_subdirectory(tests)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g3 -O0 -Wall -Werror -Wextra -Wconversion -Wuninitialized -Wunused -fsanitize=address -fsanitize=leak")
+if (NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE Release)
+endif()
+
+if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+    if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g3 -O0 -Wall -Werror -Wextra -Wconversion -Wuninitialized -Wunused -fsanitize=address -fsanitize=leak")
+    else()
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g3 -O0 -Wall -Werror -Wextra -Wconversion -Wuninitialized -Wunused")
+    endif()
+elseif(CMAKE_BUILD_TYPE STREQUAL "Release")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
+endif()
+
